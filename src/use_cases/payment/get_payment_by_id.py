@@ -1,0 +1,13 @@
+from src.entities.payment import PaymentEntity
+from src.repositories.payment_repository import PaymentRepository
+
+
+class GetPaymentByIdUseCase:
+    def __init__(self, payment_repository: PaymentRepository):
+        self.payment_repository = payment_repository
+
+    def execute(self, payment_id: int) -> PaymentEntity:
+        payment = self.payment_repository.get_by_id(payment_id)
+        if not payment:
+            raise ValueError("Pagamento não encontrado")
+        return payment
