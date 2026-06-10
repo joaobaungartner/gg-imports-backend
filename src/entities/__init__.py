@@ -8,6 +8,7 @@ from src.entities.coupon import CouponEntity
 from src.entities.payment import PaymentEntity, PaymentMethod, PaymentStatus
 from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
+from src.entities.product import ProductEntity
 from src.entities.user import UserEntity, UserRole
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "CartEntity",
     "CartItemEntity",
     "CategoryEntity",
+    "ProductEntity",
     "CouponEntity",
     "OrderEntity",
     "OrderStatus",

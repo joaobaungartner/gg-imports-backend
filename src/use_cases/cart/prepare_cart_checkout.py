@@ -3,6 +3,10 @@ from decimal import Decimal
 
 from src.entities.cart_item import CartItemEntity
 from src.repositories.cart_repository import CartRepository
+from src.repositories.product_repository import ProductRepository
+from src.use_cases.product.check_product_availability import (
+    CheckProductAvailabilityUseCase,
+)
 
 
 @dataclass
@@ -15,9 +19,15 @@ class CartCheckoutResult:
 
 
 class PrepareCartCheckoutUseCase:
-    def __init__(self, cart_repository: CartRepository):
+    def __init__(
+        self,
+        cart_repository: CartRepository,
+        product_repository: ProductRepository,
+    ):
         self.cart_repository = cart_repository
-        # TODO: injetar ProductRepository para validar estoque
+        self._check_availability = CheckProductAvailabilityUseCase(
+            product_repository
+        )
         # TODO: integrar com CreateOrderUseCase após checkout
 
     def execute(self, cart_id: int) -> CartCheckoutResult:
@@ -31,7 +41,13 @@ class PrepareCartCheckoutUseCase:
 
         itens_ativos = [item for item in cart.itens if item.ativo]
 
-        # TODO: ProductRepository - validar estoque de cada produto
+        for item in itens_ativos:
+            availability = self._check_availability.execute(
+                item.product_id, item.quantidade
+            )
+            if not availability.disponivel:
+                raise ValueError("Estoque insuficiente")
+
         # TODO: converter cada ItemCarrinho ativo em ItemPedido via CheckoutUseCase
         # TODO: CreateOrderUseCase - criar pedido a partir dos itens do carrinho
         # TODO: ClearCartUseCase - limpar carrinho após pedido criado com sucesso

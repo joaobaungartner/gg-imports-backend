@@ -5,8 +5,12 @@ from src.entities.order_item import OrderItemEntity
 from src.repositories.client_repository import ClientRepository
 from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_repository import OrderRepository
+from src.repositories.product_repository import ProductRepository
 from src.use_cases.address.validate_address_for_order import (
     ValidateAddressForOrderUseCase,
+)
+from src.use_cases.product.check_product_availability import (
+    CheckProductAvailabilityUseCase,
 )
 
 
@@ -17,21 +21,31 @@ class CreateOrderUseCase:
         order_repository: OrderRepository,
         validate_address_use_case: ValidateAddressForOrderUseCase,
         coupon_repository: CouponRepository,
+        product_repository: ProductRepository,
     ):
         self.client_repository = client_repository
         self.order_repository = order_repository
         self.validate_address_use_case = validate_address_use_case
         self.coupon_repository = coupon_repository
-        # TODO: injetar ProductRepository quando disponível
+        self.product_repository = product_repository
+        self._check_availability = CheckProductAvailabilityUseCase(
+            product_repository
+        )
 
-    def _resolve_item_price(self, product_id: int) -> Decimal:
-        # TODO: integrar ProductRepository para validar produto e obter preço
-        # Exemplo futuro:
-        # product = self.product_repository.get_by_id(product_id)
-        # if not product or not product.ativo:
-        #     raise ValueError("Produto não encontrado")
-        # return product.preco
-        return Decimal("0")
+    def _resolve_item_price(
+        self, product_id: int, quantidade: int
+    ) -> Decimal:
+        product = self.product_repository.get_by_id(product_id)
+        if not product:
+            raise ValueError("Produto não encontrado")
+        if not product.ativo:
+            raise ValueError("Produto inativo")
+
+        availability = self._check_availability.execute(product_id, quantidade)
+        if not availability.disponivel:
+            raise ValueError("Estoque insuficiente")
+
+        return product.preco
 
     def _resolve_coupon_discount(
         self, cupom_id: int | None, subtotal: Decimal
@@ -71,8 +85,7 @@ class CreateOrderUseCase:
             product_id = item_data["product_id"]
             quantidade = item_data["quantidade"]
 
-            # TODO: ProductRepository - validar produto ativo e estoque
-            preco_unitario = self._resolve_item_price(product_id)
+            preco_unitario = self._resolve_item_price(product_id, quantidade)
 
             order_item = OrderItemEntity(
                 product_id=product_id,
