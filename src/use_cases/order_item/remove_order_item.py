@@ -2,7 +2,6 @@ from src.entities.order import OrderStatus
 from src.entities.order_item import OrderItemEntity
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
-from src.use_cases.order.calculate_order_total import CalculateOrderTotalUseCase
 
 
 _BLOCKED_STATUSES = {
@@ -41,6 +40,10 @@ class RemoveOrderItemUseCase:
         deactivated = self.order_item_repository.deactivate(order_item_id)
         if not deactivated:
             raise ValueError("Item do pedido não encontrado")
+
+        from src.use_cases.order.calculate_order_total import (
+            CalculateOrderTotalUseCase,
+        )
 
         CalculateOrderTotalUseCase(self.order_repository).execute(item.order_id)
 

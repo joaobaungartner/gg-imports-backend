@@ -3,7 +3,6 @@ from src.entities.order_item import OrderItemEntity
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
-from src.use_cases.order.calculate_order_total import CalculateOrderTotalUseCase
 from src.use_cases.product.check_product_availability import (
     CheckProductAvailabilityUseCase,
 )
@@ -53,6 +52,10 @@ class UpdateOrderItemQuantityUseCase:
         )
         if not updated_item:
             raise ValueError("Item do pedido não encontrado")
+
+        from src.use_cases.order.calculate_order_total import (
+            CalculateOrderTotalUseCase,
+        )
 
         CalculateOrderTotalUseCase(self.order_repository).execute(item.order_id)
 
