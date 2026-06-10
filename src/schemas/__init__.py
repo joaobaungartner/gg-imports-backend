@@ -6,6 +6,15 @@ from src.schemas.address_schema import (
     AddressUpdate,
 )
 from src.schemas.admin_schema import AdminCreate, AdminResponse, AdminUpdate
+from src.schemas.coupon_schema import (
+    CouponApply,
+    CouponApplyResponse,
+    CouponCreate,
+    CouponListResponse,
+    CouponResponse,
+    CouponUpdate,
+    CouponValidate,
+)
 from src.schemas.client_schema import (
     ClientCartAdd,
     ClientCreate,
@@ -47,4 +56,11 @@ __all__ = [
     "AddressResponse",
     "AddressListResponse",
     "AddressForOrderResponse",
+    "CouponCreate",
+    "CouponUpdate",
+    "CouponResponse",
+    "CouponValidate",
+    "CouponApply",
+    "CouponApplyResponse",
+    "CouponListResponse",
 ]

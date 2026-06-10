@@ -1,22 +1,18 @@
 from decimal import Decimal
 
 from src.entities.order import OrderEntity, OrderStatus
+from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_repository import OrderRepository
 
 
 class ApplyCouponToOrderUseCase:
-    def __init__(self, order_repository: OrderRepository):
+    def __init__(
+        self,
+        order_repository: OrderRepository,
+        coupon_repository: CouponRepository,
+    ):
         self.order_repository = order_repository
-        # TODO: injetar CouponRepository quando disponível
-
-    def _resolve_coupon_discount(self, cupom_id: int) -> Decimal:
-        # TODO: integrar CouponRepository para validar cupom ativo e validade
-        # Exemplo futuro:
-        # coupon = self.coupon_repository.get_by_id(cupom_id)
-        # if not coupon or not coupon.ativo:
-        #     raise ValueError("Cupom inválido")
-        # return coupon.desconto
-        return Decimal("0")
+        self.coupon_repository = coupon_repository
 
     def execute(self, order_id: int, cupom_id: int) -> OrderEntity:
         order = self.order_repository.get_by_id(order_id)
@@ -26,8 +22,15 @@ class ApplyCouponToOrderUseCase:
         if order.status not in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
             raise ValueError("Pedido não pode ser alterado")
 
-        desconto = self._resolve_coupon_discount(cupom_id)
-        order.aplicar_cupom(cupom_id, desconto)
+        coupon = self.coupon_repository.get_by_id(cupom_id)
+        if not coupon:
+            raise ValueError("Cupom não encontrado")
+
+        subtotal = sum(
+            (item.subtotal() for item in order.itens), Decimal("0")
+        )
+        desconto_aplicado, _ = coupon.calcular_desconto(subtotal)
+        order.aplicar_cupom(cupom_id, desconto_aplicado)
 
         updated_order = self.order_repository.update(
             order_id,

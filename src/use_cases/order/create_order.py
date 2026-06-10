@@ -3,6 +3,7 @@ from decimal import Decimal
 from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
 from src.repositories.client_repository import ClientRepository
+from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_repository import OrderRepository
 from src.use_cases.address.validate_address_for_order import (
     ValidateAddressForOrderUseCase,
@@ -15,12 +16,13 @@ class CreateOrderUseCase:
         client_repository: ClientRepository,
         order_repository: OrderRepository,
         validate_address_use_case: ValidateAddressForOrderUseCase,
+        coupon_repository: CouponRepository,
     ):
         self.client_repository = client_repository
         self.order_repository = order_repository
         self.validate_address_use_case = validate_address_use_case
+        self.coupon_repository = coupon_repository
         # TODO: injetar ProductRepository quando disponível
-        # TODO: injetar CouponRepository quando disponível
 
     def _resolve_item_price(self, product_id: int) -> Decimal:
         # TODO: integrar ProductRepository para validar produto e obter preço
@@ -31,16 +33,16 @@ class CreateOrderUseCase:
         # return product.preco
         return Decimal("0")
 
-    def _resolve_coupon_discount(self, cupom_id: int | None) -> Decimal:
+    def _resolve_coupon_discount(
+        self, cupom_id: int | None, subtotal: Decimal
+    ) -> Decimal:
         if cupom_id is None:
             return Decimal("0")
-        # TODO: integrar CouponRepository para validar cupom e obter desconto
-        # Exemplo futuro:
-        # coupon = self.coupon_repository.get_by_id(cupom_id)
-        # if not coupon or not coupon.ativo:
-        #     raise ValueError("Cupom inválido")
-        # return coupon.desconto
-        return Decimal("0")
+        coupon = self.coupon_repository.get_by_id(cupom_id)
+        if not coupon:
+            raise ValueError("Cupom não encontrado")
+        desconto_aplicado, _ = coupon.calcular_desconto(subtotal)
+        return desconto_aplicado
 
     def execute(
         self,
@@ -79,7 +81,10 @@ class CreateOrderUseCase:
             )
             order.adicionar_item(order_item)
 
-        desconto = self._resolve_coupon_discount(cupom_id)
+        subtotal = sum(
+            (item.subtotal() for item in order.itens), Decimal("0")
+        )
+        desconto = self._resolve_coupon_discount(cupom_id, subtotal)
         if cupom_id is not None:
             order.aplicar_cupom(cupom_id, desconto)
 
