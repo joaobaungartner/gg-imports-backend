@@ -1,5 +1,7 @@
 from src.entities.address import AddressEntity
 from src.entities.admin import AdminEntity
+from src.entities.cart import CartEntity
+from src.entities.cart_item import CartItemEntity
 from src.entities.client import ClientEntity
 from src.entities.coupon import CouponEntity
 from src.entities.payment import PaymentEntity, PaymentMethod, PaymentStatus
@@ -13,6 +15,8 @@ __all__ = [
     "ClientEntity",
     "AdminEntity",
     "AddressEntity",
+    "CartEntity",
+    "CartItemEntity",
     "CouponEntity",
     "OrderEntity",
     "OrderStatus",
