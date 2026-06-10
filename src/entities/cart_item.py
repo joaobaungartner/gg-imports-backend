@@ -40,5 +40,18 @@ class CartItemEntity:
             raise ValueError("Quantidade inválida")
         self.quantidade = quantidade
 
+    def atualizar_preco_unitario(self, preco_unitario: Decimal) -> None:
+        preco = (
+            Decimal(str(preco_unitario))
+            if not isinstance(preco_unitario, Decimal)
+            else preco_unitario
+        )
+        if preco < 0:
+            raise ValueError("Preço unitário inválido")
+        self.preco_unitario = preco
+
     def desativar(self) -> None:
         self.ativo = False
+
+    def ativar(self) -> None:
+        self.ativo = True

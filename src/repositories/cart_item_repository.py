@@ -83,6 +83,25 @@ class CartItemRepository:
             return None
         return self._to_entity(model)
 
+    def get_by_cart_and_product_any(
+        self, cart_id: int, product_id: int
+    ) -> CartItemEntity | None:
+        model = (
+            self.db.query(CartItemModel)
+            .filter(
+                CartItemModel.cart_id == cart_id,
+                CartItemModel.product_id == product_id,
+            )
+            .first()
+        )
+        if not model:
+            return None
+        return self._to_entity(model)
+
+    def list_all(self) -> list[CartItemEntity]:
+        models = self.db.query(CartItemModel).all()
+        return [self._to_entity(model) for model in models]
+
     def update(self, cart_item_id: int, data: dict) -> CartItemEntity | None:
         model = (
             self.db.query(CartItemModel)
@@ -103,8 +122,16 @@ class CartItemRepository:
     ) -> CartItemEntity | None:
         return self.update(cart_item_id, {"quantidade": quantidade})
 
+    def update_unit_price(
+        self, cart_item_id: int, preco_unitario: Decimal
+    ) -> CartItemEntity | None:
+        return self.update(cart_item_id, {"preco_unitario": preco_unitario})
+
     def deactivate(self, cart_item_id: int) -> CartItemEntity | None:
         return self.update(cart_item_id, {"ativo": False})
+
+    def activate(self, cart_item_id: int) -> CartItemEntity | None:
+        return self.update(cart_item_id, {"ativo": True})
 
     def delete(self, cart_item_id: int) -> bool:
         model = (

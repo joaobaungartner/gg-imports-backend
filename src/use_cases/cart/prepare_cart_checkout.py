@@ -32,6 +32,7 @@ class PrepareCartCheckoutUseCase:
         itens_ativos = [item for item in cart.itens if item.ativo]
 
         # TODO: ProductRepository - validar estoque de cada produto
+        # TODO: converter cada ItemCarrinho ativo em ItemPedido via CheckoutUseCase
         # TODO: CreateOrderUseCase - criar pedido a partir dos itens do carrinho
         # TODO: ClearCartUseCase - limpar carrinho após pedido criado com sucesso
 
