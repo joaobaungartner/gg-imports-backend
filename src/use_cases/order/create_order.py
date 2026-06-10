@@ -4,6 +4,9 @@ from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
 from src.repositories.client_repository import ClientRepository
 from src.repositories.order_repository import OrderRepository
+from src.use_cases.address.validate_address_for_order import (
+    ValidateAddressForOrderUseCase,
+)
 
 
 class CreateOrderUseCase:
@@ -11,10 +14,11 @@ class CreateOrderUseCase:
         self,
         client_repository: ClientRepository,
         order_repository: OrderRepository,
+        validate_address_use_case: ValidateAddressForOrderUseCase,
     ):
         self.client_repository = client_repository
         self.order_repository = order_repository
-        # TODO: injetar AddressRepository quando disponível
+        self.validate_address_use_case = validate_address_use_case
         # TODO: injetar ProductRepository quando disponível
         # TODO: injetar CouponRepository quando disponível
 
@@ -51,11 +55,7 @@ class CreateOrderUseCase:
         if not client.ativo:
             raise ValueError("Cliente inativo")
 
-        # TODO: integrar AddressRepository para validar endereco_id
-        # Exemplo futuro:
-        # address = self.address_repository.get_by_id(endereco_id)
-        # if not address:
-        #     raise ValueError("Endereço não encontrado")
+        self.validate_address_use_case.execute(endereco_id, client_id)
 
         order = OrderEntity(
             id=None,

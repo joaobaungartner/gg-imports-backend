@@ -1,3 +1,4 @@
+from src.entities.address import AddressEntity
 from src.entities.admin import AdminEntity
 from src.entities.client import ClientEntity
 from src.entities.order import OrderEntity, OrderStatus
@@ -9,6 +10,7 @@ __all__ = [
     "UserRole",
     "ClientEntity",
     "AdminEntity",
+    "AddressEntity",
     "OrderEntity",
     "OrderStatus",
     "OrderItemEntity",

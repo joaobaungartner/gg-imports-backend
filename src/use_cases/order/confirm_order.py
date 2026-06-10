@@ -1,6 +1,9 @@
 from src.entities.order import OrderEntity
 from src.repositories.client_repository import ClientRepository
 from src.repositories.order_repository import OrderRepository
+from src.use_cases.address.validate_address_for_order import (
+    ValidateAddressForOrderUseCase,
+)
 
 
 class ConfirmOrderUseCase:
@@ -8,10 +11,11 @@ class ConfirmOrderUseCase:
         self,
         client_repository: ClientRepository,
         order_repository: OrderRepository,
+        validate_address_use_case: ValidateAddressForOrderUseCase,
     ):
         self.client_repository = client_repository
         self.order_repository = order_repository
-        # TODO: injetar AddressRepository quando disponível
+        self.validate_address_use_case = validate_address_use_case
         # TODO: injetar ProductRepository quando disponível
 
     def execute(self, order_id: int) -> OrderEntity:
@@ -25,7 +29,8 @@ class ConfirmOrderUseCase:
         if not client.ativo:
             raise ValueError("Cliente inativo")
 
-        # TODO: integrar AddressRepository para validar endereco_id
+        self.validate_address_use_case.execute(order.endereco_id, order.client_id)
+
         # TODO: integrar ProductRepository para validar estoque dos itens
         # Exemplo futuro:
         # for item in order.itens:
