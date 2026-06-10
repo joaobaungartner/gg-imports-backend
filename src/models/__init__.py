@@ -2,6 +2,7 @@ from src.models.address_model import AddressModel
 from src.models.admin_model import AdminModel
 from src.models.cart_item_model import CartItemModel
 from src.models.cart_model import CartModel
+from src.models.category_model import CategoryModel
 from src.models.client_model import ClientModel
 from src.models.coupon_model import CouponModel
 from src.models.payment_model import PaymentModel
@@ -16,6 +17,7 @@ __all__ = [
     "AddressModel",
     "CartModel",
     "CartItemModel",
+    "CategoryModel",
     "CouponModel",
     "OrderModel",
     "OrderItemModel",
