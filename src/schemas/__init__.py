@@ -1,3 +1,10 @@
+from src.schemas.address_schema import (
+    AddressCreate,
+    AddressForOrderResponse,
+    AddressListResponse,
+    AddressResponse,
+    AddressUpdate,
+)
 from src.schemas.admin_schema import AdminCreate, AdminResponse, AdminUpdate
 from src.schemas.client_schema import (
     ClientCartAdd,
@@ -35,4 +42,9 @@ __all__ = [
     "OrderItemResponse",
     "OrderResponse",
     "OrderListResponse",
+    "AddressCreate",
+    "AddressUpdate",
+    "AddressResponse",
+    "AddressListResponse",
+    "AddressForOrderResponse",
 ]
