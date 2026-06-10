@@ -31,6 +31,7 @@ class OrderItemResponse(BaseModel):
     quantidade: int
     preco_unitario: Decimal
     subtotal: Decimal
+    ativo: bool = True
 
     class Config:
         from_attributes = True

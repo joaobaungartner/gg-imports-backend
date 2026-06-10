@@ -9,6 +9,46 @@ class OrderItemEntity:
     preco_unitario: Decimal
     id: int | None = None
     order_id: int | None = None
+    ativo: bool = True
+
+    def __post_init__(self) -> None:
+        if isinstance(self.preco_unitario, (int, float)):
+            self.preco_unitario = Decimal(str(self.preco_unitario))
+        self.validar_item()
+
+    def validar_item(self) -> None:
+        if not self.product_id:
+            raise ValueError("Produto não encontrado")
+        if self.quantidade <= 0:
+            raise ValueError("Quantidade inválida")
+        if self.preco_unitario < 0:
+            raise ValueError("Preço unitário inválido")
 
     def subtotal(self) -> Decimal:
-        return self.preco_unitario * self.quantidade
+        if not self.ativo:
+            return Decimal("0")
+        total = self.preco_unitario * self.quantidade
+        if total < 0:
+            return Decimal("0")
+        return total
+
+    def calcular_subtotal(self) -> Decimal:
+        return self.subtotal()
+
+    def atualizar_quantidade(self, quantidade: int) -> None:
+        if quantidade <= 0:
+            raise ValueError("Quantidade inválida")
+        self.quantidade = quantidade
+
+    def atualizar_preco_unitario(self, preco_unitario: Decimal) -> None:
+        preco = (
+            Decimal(str(preco_unitario))
+            if not isinstance(preco_unitario, Decimal)
+            else preco_unitario
+        )
+        if preco < 0:
+            raise ValueError("Preço unitário inválido")
+        self.preco_unitario = preco
+
+    def desativar(self) -> None:
+        self.ativo = False

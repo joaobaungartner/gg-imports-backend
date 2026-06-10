@@ -20,6 +20,7 @@ class OrderRepository:
             product_id=model.product_id,
             quantidade=model.quantidade,
             preco_unitario=Decimal(str(model.preco_unitario)),
+            ativo=model.ativo,
         )
 
     def _item_to_model(self, entity: OrderItemEntity, order_id: int) -> OrderItemModel:
@@ -28,6 +29,7 @@ class OrderRepository:
             "product_id": entity.product_id,
             "quantidade": entity.quantidade,
             "preco_unitario": entity.preco_unitario,
+            "ativo": entity.ativo,
         }
         if entity.id is not None:
             kwargs["id"] = entity.id

@@ -53,7 +53,10 @@ class OrderEntity:
             raise ValueError("Valor total não pode ser negativo")
 
     def calcular_total(self) -> Decimal:
-        subtotal = sum((item.subtotal() for item in self.itens), Decimal("0"))
+        subtotal = sum(
+            (item.subtotal() for item in self.itens if item.ativo),
+            Decimal("0"),
+        )
         total = subtotal - self.desconto_cupom
         if total < 0:
             total = Decimal("0")
