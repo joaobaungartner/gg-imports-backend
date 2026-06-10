@@ -2,6 +2,7 @@ from src.repositories.address_repository import AddressRepository
 from src.repositories.admin_repository import AdminRepository
 from src.repositories.cart_item_repository import CartItemRepository
 from src.repositories.cart_repository import CartRepository
+from src.repositories.category_repository import CategoryRepository
 from src.repositories.client_repository import ClientRepository
 from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_item_repository import OrderItemRepository
@@ -16,6 +17,7 @@ __all__ = [
     "AddressRepository",
     "CartRepository",
     "CartItemRepository",
+    "CategoryRepository",
     "CouponRepository",
     "OrderRepository",
     "OrderItemRepository",

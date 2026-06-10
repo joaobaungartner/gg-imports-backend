@@ -15,6 +15,12 @@ from src.schemas.coupon_schema import (
     CouponUpdate,
     CouponValidate,
 )
+from src.schemas.category_schema import (
+    CategoryCreate,
+    CategoryListResponse,
+    CategoryResponse,
+    CategoryUpdate,
+)
 from src.schemas.cart_item_schema import (
     CartItemCreate as StandaloneCartItemCreate,
     CartItemListResponse,
@@ -85,6 +91,10 @@ __all__ = [
     "CartResponse",
     "CartListResponse",
     "CartCheckoutResponse",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryResponse",
+    "CategoryListResponse",
     "AdminCreate",
     "AdminUpdate",
     "AdminResponse",
