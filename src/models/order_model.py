@@ -16,8 +16,9 @@ class OrderModel(Base):
     endereco_id = Column(
         Integer, ForeignKey("addresses.id"), nullable=False, index=True
     )
-    # TODO: ForeignKey("payments.id") quando PaymentModel existir
-    pagamento_id = Column(Integer, nullable=True, index=True)
+    pagamento_id = Column(
+        Integer, ForeignKey("payments.id"), nullable=True, index=True
+    )
     cupom_id = Column(
         Integer, ForeignKey("coupons.id"), nullable=True, index=True
     )
@@ -30,6 +31,12 @@ class OrderModel(Base):
     client = relationship("ClientModel", backref="orders")
     endereco = relationship("AddressModel", backref="orders")
     cupom = relationship("CouponModel", back_populates="orders")
+    pagamento = relationship(
+        "PaymentModel",
+        back_populates="order",
+        uselist=False,
+        foreign_keys="PaymentModel.order_id",
+    )
     itens = relationship(
         "OrderItemModel",
         back_populates="order",

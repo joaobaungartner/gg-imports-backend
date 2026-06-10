@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, Numeric
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import relationship
 
 from src.database.database import Base
@@ -15,5 +15,8 @@ class OrderItemModel(Base):
     product_id = Column(Integer, nullable=False, index=True)
     quantidade = Column(Integer, nullable=False)
     preco_unitario = Column(Numeric(10, 2), nullable=False)
+    ativo = Column(Boolean, default=True, nullable=False)
 
     order = relationship("OrderModel", back_populates="itens")
+    # TODO: relationship com ProductModel quando existir
+    # produto = relationship("ProductModel", back_populates="order_items")
