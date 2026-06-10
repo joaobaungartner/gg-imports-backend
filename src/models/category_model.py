@@ -12,5 +12,4 @@ class CategoryModel(Base):
     descricao = Column(Text, nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
-    # TODO: relationship com ProductModel quando existir
-    # produtos = relationship("ProductModel", back_populates="categoria")
+    produtos = relationship("ProductModel", back_populates="categoria")

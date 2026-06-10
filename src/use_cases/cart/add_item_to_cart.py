@@ -1,6 +1,7 @@
 from src.entities.cart import CartEntity
 from src.repositories.cart_item_repository import CartItemRepository
 from src.repositories.cart_repository import CartRepository
+from src.repositories.product_repository import ProductRepository
 from src.use_cases.cart_item.create_cart_item import CreateCartItemUseCase
 
 
@@ -9,10 +10,11 @@ class AddItemToCartUseCase:
         self,
         cart_repository: CartRepository,
         cart_item_repository: CartItemRepository,
+        product_repository: ProductRepository,
     ):
         self.cart_repository = cart_repository
         self._create_cart_item = CreateCartItemUseCase(
-            cart_repository, cart_item_repository
+            cart_repository, cart_item_repository, product_repository
         )
 
     def execute(

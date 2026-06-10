@@ -53,6 +53,16 @@ from src.schemas.payment_schema import (
     PaymentResponse,
     PaymentStatusUpdate,
 )
+from src.schemas.product_schema import (
+    ProductAvailabilityRequest,
+    ProductAvailabilityResponse,
+    ProductCreate,
+    ProductListResponse,
+    ProductResponse,
+    ProductStockChange,
+    ProductStockUpdate,
+    ProductUpdate,
+)
 from src.schemas.order_item_schema import (
     OrderItemCreate as StandaloneOrderItemCreate,
     OrderItemListResponse,
@@ -95,6 +105,14 @@ __all__ = [
     "CategoryUpdate",
     "CategoryResponse",
     "CategoryListResponse",
+    "ProductCreate",
+    "ProductUpdate",
+    "ProductResponse",
+    "ProductListResponse",
+    "ProductStockUpdate",
+    "ProductStockChange",
+    "ProductAvailabilityRequest",
+    "ProductAvailabilityResponse",
     "AdminCreate",
     "AdminUpdate",
     "AdminResponse",

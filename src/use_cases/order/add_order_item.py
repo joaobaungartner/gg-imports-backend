@@ -1,18 +1,21 @@
-from decimal import Decimal
-
-from src.entities.order import OrderEntity, OrderStatus
-from src.entities.order_item import OrderItemEntity
+from src.entities.order import OrderEntity
+from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
+from src.repositories.product_repository import ProductRepository
+from src.use_cases.order_item.create_order_item import CreateOrderItemUseCase
 
 
 class AddOrderItemUseCase:
-    def __init__(self, order_repository: OrderRepository):
+    def __init__(
+        self,
+        order_repository: OrderRepository,
+        order_item_repository: OrderItemRepository,
+        product_repository: ProductRepository,
+    ):
         self.order_repository = order_repository
-        # TODO: injetar ProductRepository quando disponível
-
-    def _resolve_item_price(self, product_id: int) -> Decimal:
-        # TODO: integrar ProductRepository para validar produto e obter preço
-        return Decimal("0")
+        self._create_order_item = CreateOrderItemUseCase(
+            order_repository, order_item_repository, product_repository
+        )
 
     def execute(
         self,
@@ -20,31 +23,9 @@ class AddOrderItemUseCase:
         product_id: int,
         quantidade: int,
     ) -> OrderEntity:
-        order = self.order_repository.get_by_id(order_id)
-        if not order:
-            raise ValueError("Pedido não encontrado")
+        self._create_order_item.execute(order_id, product_id, quantidade)
 
-        if order.status not in (OrderStatus.PENDING,):
-            raise ValueError("Pedido não pode ser alterado")
-
-        if quantidade <= 0:
-            raise ValueError("Quantidade deve ser maior que zero")
-
-        # TODO: ProductRepository - validar produto ativo e estoque
-        preco_unitario = self._resolve_item_price(product_id)
-
-        item = OrderItemEntity(
-            product_id=product_id,
-            quantidade=quantidade,
-            preco_unitario=preco_unitario,
-        )
-        order.adicionar_item(item)
-
-        self.order_repository.add_item(order_id, item)
-
-        updated_order = self.order_repository.update(
-            order_id, {"valor_total": order.valor_total}
-        )
+        updated_order = self.order_repository.get_by_id(order_id)
         if not updated_order:
             raise ValueError("Pedido não encontrado")
 

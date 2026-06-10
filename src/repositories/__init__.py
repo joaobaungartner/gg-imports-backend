@@ -8,6 +8,7 @@ from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.payment_repository import PaymentRepository
+from src.repositories.product_repository import ProductRepository
 from src.repositories.user_repository import UserRepository
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "CartRepository",
     "CartItemRepository",
     "CategoryRepository",
+    "ProductRepository",
     "CouponRepository",
     "OrderRepository",
     "OrderItemRepository",

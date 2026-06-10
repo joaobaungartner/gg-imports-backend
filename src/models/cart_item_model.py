@@ -11,12 +11,12 @@ class CartItemModel(Base):
     cart_id = Column(
         Integer, ForeignKey("carts.id"), nullable=False, index=True
     )
-    # TODO: ForeignKey("products.id") quando ProductModel existir
-    product_id = Column(Integer, nullable=False, index=True)
+    product_id = Column(
+        Integer, ForeignKey("products.id"), nullable=False, index=True
+    )
     quantidade = Column(Integer, nullable=False)
     preco_unitario = Column(Numeric(10, 2), nullable=False)
     ativo = Column(Boolean, default=True, nullable=False)
 
     cart = relationship("CartModel", back_populates="itens")
-    # TODO: relationship com ProductModel quando existir
-    # produto = relationship("ProductModel", back_populates="cart_items")
+    produto = relationship("ProductModel", back_populates="cart_items")

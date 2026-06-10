@@ -11,12 +11,12 @@ class OrderItemModel(Base):
     order_id = Column(
         Integer, ForeignKey("orders.id"), nullable=False, index=True
     )
-    # TODO: ForeignKey("products.id") quando ProductModel existir
-    product_id = Column(Integer, nullable=False, index=True)
+    product_id = Column(
+        Integer, ForeignKey("products.id"), nullable=False, index=True
+    )
     quantidade = Column(Integer, nullable=False)
     preco_unitario = Column(Numeric(10, 2), nullable=False)
     ativo = Column(Boolean, default=True, nullable=False)
 
     order = relationship("OrderModel", back_populates="itens")
-    # TODO: relationship com ProductModel quando existir
-    # produto = relationship("ProductModel", back_populates="order_items")
+    produto = relationship("ProductModel", back_populates="order_items")
