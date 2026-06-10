@@ -1,3 +1,4 @@
+from src.schemas.admin_schema import AdminCreate, AdminResponse, AdminUpdate
 from src.schemas.client_schema import (
     ClientCartAdd,
     ClientCreate,
@@ -15,4 +16,7 @@ __all__ = [
     "ClientUpdate",
     "ClientResponse",
     "ClientCartAdd",
+    "AdminCreate",
+    "AdminUpdate",
+    "AdminResponse",
 ]
