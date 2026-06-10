@@ -5,7 +5,6 @@ from src.entities.order_item import OrderItemEntity
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
-from src.use_cases.order.calculate_order_total import CalculateOrderTotalUseCase
 from src.use_cases.product.check_product_availability import (
     CheckProductAvailabilityUseCase,
 )
@@ -68,6 +67,10 @@ class CreateOrderItemUseCase:
         )
 
         created_item = self.order_item_repository.create(item)
+
+        from src.use_cases.order.calculate_order_total import (
+            CalculateOrderTotalUseCase,
+        )
 
         CalculateOrderTotalUseCase(self.order_repository).execute(order_id)
 
