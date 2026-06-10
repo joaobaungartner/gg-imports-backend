@@ -15,6 +15,15 @@ from src.schemas.coupon_schema import (
     CouponUpdate,
     CouponValidate,
 )
+from src.schemas.cart_schema import (
+    CartCheckoutResponse,
+    CartCreate,
+    CartItemCreate,
+    CartItemResponse,
+    CartItemUpdate,
+    CartListResponse,
+    CartResponse,
+)
 from src.schemas.client_schema import (
     ClientCartAdd,
     ClientCreate,
@@ -57,6 +66,13 @@ __all__ = [
     "ClientUpdate",
     "ClientResponse",
     "ClientCartAdd",
+    "CartCreate",
+    "CartItemCreate",
+    "CartItemUpdate",
+    "CartItemResponse",
+    "CartResponse",
+    "CartListResponse",
+    "CartCheckoutResponse",
     "AdminCreate",
     "AdminUpdate",
     "AdminResponse",
