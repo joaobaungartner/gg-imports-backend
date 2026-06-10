@@ -1,5 +1,15 @@
 from src.entities.admin import AdminEntity
 from src.entities.client import ClientEntity
+from src.entities.order import OrderEntity, OrderStatus
+from src.entities.order_item import OrderItemEntity
 from src.entities.user import UserEntity, UserRole
 
-__all__ = ["UserEntity", "UserRole", "ClientEntity", "AdminEntity"]
+__all__ = [
+    "UserEntity",
+    "UserRole",
+    "ClientEntity",
+    "AdminEntity",
+    "OrderEntity",
+    "OrderStatus",
+    "OrderItemEntity",
+]
