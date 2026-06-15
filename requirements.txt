@@ -11,3 +11,4 @@ passlib[bcrypt]
 python-dotenv
 psycopg2-binary
 asyncpg
+pydantic[email]
