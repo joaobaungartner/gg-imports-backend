@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from src.routes.auth_routes import router as auth_router
 from src.routes.address_routes import router as address_router
 from src.routes.admin_routes import router as admin_router
 from src.routes.cart_item_routes import router as cart_item_router
@@ -19,6 +20,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(client_router)
 app.include_router(admin_router)
