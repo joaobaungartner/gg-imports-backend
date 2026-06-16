@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import get_current_admin, get_current_user
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.product_repository import ProductRepository
@@ -42,8 +44,11 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def create_product(
+    payload: ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = CreateProductUseCase(
             CategoryRepository(db), ProductRepository(db)
@@ -134,9 +139,11 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{product_id}", response_model=ProductResponse)
 def update_product(
-    product_id: int, payload: ProductUpdate, db: Session = Depends(get_db)
+    product_id: int,
+    payload: ProductUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
-    # TODO: validar permissão de Admin quando middleware existir
     def _execute():
         use_case = UpdateProductUseCase(
             CategoryRepository(db), ProductRepository(db)
@@ -161,7 +168,10 @@ def update_product(
 
 @router.patch("/{product_id}/stock", response_model=ProductResponse)
 def update_product_stock(
-    product_id: int, payload: ProductStockUpdate, db: Session = Depends(get_db)
+    product_id: int,
+    payload: ProductStockUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
     def _execute():
         use_case = UpdateProductStockUseCase(ProductRepository(db))
@@ -172,7 +182,10 @@ def update_product_stock(
 
 @router.patch("/{product_id}/stock/increase", response_model=ProductResponse)
 def increase_product_stock(
-    product_id: int, payload: ProductStockChange, db: Session = Depends(get_db)
+    product_id: int,
+    payload: ProductStockChange,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
     def _execute():
         use_case = IncreaseProductStockUseCase(ProductRepository(db))
@@ -185,7 +198,10 @@ def increase_product_stock(
 
 @router.patch("/{product_id}/stock/decrease", response_model=ProductResponse)
 def decrease_product_stock(
-    product_id: int, payload: ProductStockChange, db: Session = Depends(get_db)
+    product_id: int,
+    payload: ProductStockChange,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
     def _execute():
         use_case = DecreaseProductStockUseCase(ProductRepository(db))
@@ -198,7 +214,10 @@ def decrease_product_stock(
 
 @router.post("/{product_id}/availability", response_model=ProductAvailabilityResponse)
 def check_product_availability(
-    product_id: int, payload: ProductStockChange, db: Session = Depends(get_db)
+    product_id: int,
+    payload: ProductStockChange,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
     def _execute():
         use_case = CheckProductAvailabilityUseCase(ProductRepository(db))
@@ -209,7 +228,11 @@ def check_product_availability(
 
 
 @router.patch("/{product_id}/activate", response_model=ProductResponse)
-def activate_product(product_id: int, db: Session = Depends(get_db)):
+def activate_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = ActivateProductUseCase(ProductRepository(db))
         return to_product_response(use_case.execute(product_id))
@@ -218,7 +241,11 @@ def activate_product(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{product_id}/deactivate", response_model=ProductResponse)
-def deactivate_product(product_id: int, db: Session = Depends(get_db)):
+def deactivate_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = DeactivateProductUseCase(ProductRepository(db))
         return to_product_response(use_case.execute(product_id))
@@ -227,7 +254,11 @@ def deactivate_product(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{product_id}", response_model=ProductResponse)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = DeleteProductUseCase(
             ProductRepository(db), OrderItemRepository(db)

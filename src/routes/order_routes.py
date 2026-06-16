@@ -5,6 +5,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import (
+    ensure_client_owner_or_admin,
+    ensure_order_owner_or_admin,
+    get_current_admin,
+    get_current_user,
+)
 from src.repositories.address_repository import AddressRepository
 from src.repositories.client_repository import ClientRepository
 from src.repositories.coupon_repository import CouponRepository
@@ -44,7 +51,13 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
-def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
+def create_order(
+    payload: OrderCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_owner_or_admin(payload.client_id, current_user, db)
+
     def _execute():
         validate_address = ValidateAddressForOrderUseCase(AddressRepository(db))
         use_case = CreateOrderUseCase(
@@ -74,8 +87,8 @@ def list_orders(
     status: str | None = Query(default=None),
     client_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
-    # TODO: validar permissão de Admin quando middleware existir
     def _execute():
         use_case = ListOrdersUseCase(OrderRepository(db))
         orders = use_case.execute(status=status, client_id=client_id)
@@ -85,7 +98,13 @@ def list_orders(
 
 
 @router.get("/client/{client_id}", response_model=list[OrderListResponse])
-def get_orders_by_client(client_id: int, db: Session = Depends(get_db)):
+def get_orders_by_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_owner_or_admin(client_id, current_user, db)
+
     def _execute():
         use_case = GetOrdersByClientUseCase(
             ClientRepository(db), OrderRepository(db)
@@ -97,7 +116,13 @@ def get_orders_by_client(client_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{order_id}", response_model=OrderResponse)
-def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
+def get_order_by_id(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = GetOrderByIdUseCase(OrderRepository(db))
         return to_order_response(use_case.execute(order_id))
@@ -107,9 +132,11 @@ def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{order_id}/status", response_model=OrderResponse)
 def update_order_status(
-    order_id: int, payload: OrderStatusUpdate, db: Session = Depends(get_db)
+    order_id: int,
+    payload: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
-    # TODO: validar permissão de Admin quando middleware existir
     def _execute():
         use_case = UpdateOrderStatusUseCase(OrderRepository(db))
         order = use_case.execute(order_id, payload.status)
@@ -119,7 +146,13 @@ def update_order_status(
 
 
 @router.patch("/{order_id}/cancel", response_model=OrderResponse)
-def cancel_order(order_id: int, db: Session = Depends(get_db)):
+def cancel_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = CancelOrderUseCase(OrderRepository(db))
         return to_order_response(use_case.execute(order_id))
@@ -128,7 +161,13 @@ def cancel_order(order_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{order_id}/total", response_model=OrderResponse)
-def calculate_order_total(order_id: int, db: Session = Depends(get_db)):
+def calculate_order_total(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = CalculateOrderTotalUseCase(OrderRepository(db))
         return to_order_response(use_case.execute(order_id))
@@ -138,8 +177,13 @@ def calculate_order_total(order_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{order_id}/items", response_model=OrderResponse)
 def add_order_item(
-    order_id: int, payload: OrderItemCreate, db: Session = Depends(get_db)
+    order_id: int,
+    payload: OrderItemCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = AddOrderItemUseCase(
             OrderRepository(db),
@@ -154,8 +198,13 @@ def add_order_item(
 
 @router.delete("/{order_id}/items/{order_item_id}", response_model=OrderResponse)
 def remove_order_item(
-    order_id: int, order_item_id: int, db: Session = Depends(get_db)
+    order_id: int,
+    order_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = RemoveOrderItemUseCase(OrderRepository(db))
         return to_order_response(use_case.execute(order_id, order_item_id))
@@ -168,7 +217,10 @@ def apply_coupon_to_order(
     order_id: int,
     payload: ApplyCouponToOrderRequest,
     db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = ApplyCouponToOrderUseCase(
             OrderRepository(db), CouponRepository(db)
@@ -179,7 +231,13 @@ def apply_coupon_to_order(
 
 
 @router.patch("/{order_id}/confirm", response_model=OrderResponse)
-def confirm_order(order_id: int, db: Session = Depends(get_db)):
+def confirm_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     # TODO: integrar validação de estoque via ProductRepository no use case
     def _execute():
         validate_address = ValidateAddressForOrderUseCase(AddressRepository(db))

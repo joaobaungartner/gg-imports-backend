@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import get_current_admin
 from src.repositories.admin_repository import AdminRepository
 from src.repositories.user_repository import UserRepository
 from src.routes.mappers import to_admin_response
@@ -18,8 +20,12 @@ router = APIRouter(prefix="/admins", tags=["Admins"])
 
 
 @router.post("/", response_model=AdminResponse, status_code=status.HTTP_201_CREATED)
-def create_admin(payload: AdminCreate, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def create_admin(
+    payload: AdminCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    # TODO: o primeiro admin deve ser criado via seed, script interno ou variável de ambiente
     def _execute():
         use_case = CreateAdminUseCase(UserRepository(db), AdminRepository(db))
         admin = use_case.execute(
@@ -34,7 +40,11 @@ def create_admin(payload: AdminCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{admin_id}", response_model=AdminResponse)
-def get_admin_by_id(admin_id: int, db: Session = Depends(get_db)):
+def get_admin_by_id(
+    admin_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = GetAdminByIdUseCase(AdminRepository(db))
         return to_admin_response(use_case.execute(admin_id))
@@ -43,7 +53,11 @@ def get_admin_by_id(admin_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/user/{user_id}", response_model=AdminResponse)
-def get_admin_by_user_id(user_id: int, db: Session = Depends(get_db)):
+def get_admin_by_user_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = GetAdminByUserIdUseCase(AdminRepository(db))
         return to_admin_response(use_case.execute(user_id))
@@ -52,7 +66,11 @@ def get_admin_by_user_id(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/email/{email}", response_model=AdminResponse)
-def get_admin_by_email(email: str, db: Session = Depends(get_db)):
+def get_admin_by_email(
+    email: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = GetAdminByEmailUseCase(AdminRepository(db))
         return to_admin_response(use_case.execute(email))
@@ -61,8 +79,12 @@ def get_admin_by_email(email: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{admin_id}", response_model=AdminResponse)
-def update_admin(admin_id: int, payload: AdminUpdate, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def update_admin(
+    admin_id: int,
+    payload: AdminUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = UpdateAdminUseCase(AdminRepository(db))
         admin = use_case.execute(
@@ -77,8 +99,11 @@ def update_admin(admin_id: int, payload: AdminUpdate, db: Session = Depends(get_
 
 
 @router.patch("/{admin_id}/deactivate", response_model=AdminResponse)
-def deactivate_admin(admin_id: int, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def deactivate_admin(
+    admin_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = DeactivateAdminUseCase(AdminRepository(db))
         return to_admin_response(use_case.execute(admin_id))
