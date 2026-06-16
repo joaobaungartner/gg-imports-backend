@@ -2,6 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import (
+    ensure_client_access_by_cpf,
+    ensure_client_access_by_user_id,
+    ensure_client_owner_or_admin,
+    get_current_user,
+)
 from src.repositories.cart_item_repository import CartItemRepository
 from src.repositories.cart_repository import CartRepository
 from src.repositories.client_repository import ClientRepository
@@ -43,7 +50,12 @@ def create_client(payload: ClientCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/user/{user_id}", response_model=ClientResponse)
-def get_client_by_user_id(user_id: int, db: Session = Depends(get_db)):
+def get_client_by_user_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_access_by_user_id(user_id, current_user)
     def _execute():
         repository = ClientRepository(db)
         use_case = GetClientByUserIdUseCase(repository)
@@ -53,7 +65,12 @@ def get_client_by_user_id(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/cpf/{cpf}", response_model=ClientResponse)
-def get_client_by_cpf(cpf: str, db: Session = Depends(get_db)):
+def get_client_by_cpf(
+    cpf: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_access_by_cpf(cpf, current_user, db)
     def _execute():
         repository = ClientRepository(db)
         use_case = GetClientByCpfUseCase(repository)
@@ -63,7 +80,12 @@ def get_client_by_cpf(cpf: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{client_id}", response_model=ClientResponse)
-def get_client_by_id(client_id: int, db: Session = Depends(get_db)):
+def get_client_by_id(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_owner_or_admin(client_id, current_user, db)
     def _execute():
         repository = ClientRepository(db)
         use_case = GetClientByIdUseCase(repository)
@@ -74,8 +96,12 @@ def get_client_by_id(client_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{client_id}", response_model=ClientResponse)
 def update_client(
-    client_id: int, payload: ClientUpdate, db: Session = Depends(get_db)
+    client_id: int,
+    payload: ClientUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_client_owner_or_admin(client_id, current_user, db)
     def _execute():
         repository = ClientRepository(db)
         use_case = UpdateClientUseCase(repository)
@@ -91,7 +117,12 @@ def update_client(
 
 
 @router.patch("/{client_id}/deactivate", response_model=ClientResponse)
-def deactivate_client(client_id: int, db: Session = Depends(get_db)):
+def deactivate_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_owner_or_admin(client_id, current_user, db)
     def _execute():
         repository = ClientRepository(db)
         use_case = DeactivateClientUseCase(repository)
@@ -101,7 +132,12 @@ def deactivate_client(client_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{client_id}/orders", response_model=list[OrderListResponse])
-def list_client_orders(client_id: int, db: Session = Depends(get_db)):
+def list_client_orders(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_client_owner_or_admin(client_id, current_user, db)
     # TODO: integração completa quando ListClientOrdersUseCase usar OrderRepository
     def _execute():
         repository = ClientRepository(db)
@@ -114,8 +150,12 @@ def list_client_orders(client_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{client_id}/cart/items", response_model=CartResponse)
 def add_to_cart(
-    client_id: int, payload: ClientCartAdd, db: Session = Depends(get_db)
+    client_id: int,
+    payload: ClientCartAdd,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_client_owner_or_admin(client_id, current_user, db)
     def _execute():
         use_case = AddToCartUseCase(
             ClientRepository(db),

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import get_current_admin
 from src.repositories.coupon_repository import CouponRepository
 from src.routes.mappers import (
     to_coupon_apply_response,
@@ -32,8 +34,11 @@ router = APIRouter(prefix="/coupons", tags=["Coupons"])
 
 
 @router.post("/", response_model=CouponResponse, status_code=status.HTTP_201_CREATED)
-def create_coupon(payload: CouponCreate, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def create_coupon(
+    payload: CouponCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = CreateCouponUseCase(CouponRepository(db))
         coupon = use_case.execute(
@@ -52,6 +57,7 @@ def list_coupons(
     active: bool | None = Query(default=None),
     expired: bool | None = Query(default=None),
     db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
     def _execute():
         use_case = ListCouponsUseCase(CouponRepository(db))
@@ -81,7 +87,11 @@ def apply_coupon(payload: CouponApply, db: Session = Depends(get_db)):
 
 
 @router.get("/code/{codigo}", response_model=CouponResponse)
-def get_coupon_by_code(codigo: str, db: Session = Depends(get_db)):
+def get_coupon_by_code(
+    codigo: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = GetCouponByCodeUseCase(CouponRepository(db))
         return to_coupon_response(use_case.execute(codigo))
@@ -90,7 +100,11 @@ def get_coupon_by_code(codigo: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{coupon_id}", response_model=CouponResponse)
-def get_coupon_by_id(coupon_id: int, db: Session = Depends(get_db)):
+def get_coupon_by_id(
+    coupon_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = GetCouponByIdUseCase(CouponRepository(db))
         return to_coupon_response(use_case.execute(coupon_id))
@@ -100,9 +114,11 @@ def get_coupon_by_id(coupon_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{coupon_id}", response_model=CouponResponse)
 def update_coupon(
-    coupon_id: int, payload: CouponUpdate, db: Session = Depends(get_db)
+    coupon_id: int,
+    payload: CouponUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
-    # TODO: validar permissão de Admin quando middleware existir
     def _execute():
         use_case = UpdateCouponUseCase(CouponRepository(db))
         coupon = use_case.execute(
@@ -118,7 +134,11 @@ def update_coupon(
 
 
 @router.patch("/{coupon_id}/activate", response_model=CouponResponse)
-def activate_coupon(coupon_id: int, db: Session = Depends(get_db)):
+def activate_coupon(
+    coupon_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = ActivateCouponUseCase(CouponRepository(db))
         return to_coupon_response(use_case.execute(coupon_id))
@@ -127,7 +147,11 @@ def activate_coupon(coupon_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{coupon_id}/deactivate", response_model=CouponResponse)
-def deactivate_coupon(coupon_id: int, db: Session = Depends(get_db)):
+def deactivate_coupon(
+    coupon_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         use_case = DeactivateCouponUseCase(CouponRepository(db))
         return to_coupon_response(use_case.execute(coupon_id))

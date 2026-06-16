@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
-from src.entities.user import UserRole
+from src.entities.user import UserEntity, UserRole
+from src.middlewares.auth import get_current_admin, get_current_user, require_admin_or_self
 from src.repositories.user_repository import UserRepository
 from src.routes.mappers import to_user_response
 from src.routes.utils import run_use_case
@@ -48,7 +49,12 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+def get_user_by_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    require_admin_or_self(user_id, current_user)
     def _execute():
         repository = UserRepository(db)
         use_case = GetUserByIdUseCase(repository)
@@ -58,7 +64,11 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/email/{email}", response_model=UserResponse)
-def get_user_by_email(email: str, db: Session = Depends(get_db)):
+def get_user_by_email(
+    email: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         repository = UserRepository(db)
         use_case = GetUserByEmailUseCase(repository)
@@ -68,7 +78,13 @@ def get_user_by_email(email: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    require_admin_or_self(user_id, current_user)
     def _execute():
         repository = UserRepository(db)
         use_case = UpdateUserUseCase(repository)
@@ -83,7 +99,12 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
 
 
 @router.patch("/{user_id}/deactivate", response_model=UserResponse)
-def deactivate_user(user_id: int, db: Session = Depends(get_db)):
+def deactivate_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    require_admin_or_self(user_id, current_user)
     def _execute():
         repository = UserRepository(db)
         use_case = DeactivateUserUseCase(repository)

@@ -5,6 +5,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import (
+    ensure_order_item_owner_or_admin,
+    ensure_order_owner_or_admin,
+    get_current_user,
+)
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
@@ -39,7 +45,13 @@ router = APIRouter(prefix="/order-items", tags=["Order Items"])
 
 
 @router.post("/", response_model=OrderItemResponse, status_code=status.HTTP_201_CREATED)
-def create_order_item(payload: OrderItemCreate, db: Session = Depends(get_db)):
+def create_order_item(
+    payload: OrderItemCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(payload.order_id, current_user, db)
+
     def _execute():
         use_case = CreateOrderItemUseCase(
             OrderRepository(db),
@@ -55,7 +67,13 @@ def create_order_item(payload: OrderItemCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{order_item_id}", response_model=OrderItemResponse)
-def get_order_item_by_id(order_item_id: int, db: Session = Depends(get_db)):
+def get_order_item_by_id(
+    order_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_item_owner_or_admin(order_item_id, current_user, db)
+
     def _execute():
         use_case = GetOrderItemByIdUseCase(OrderItemRepository(db))
         return to_order_item_response(use_case.execute(order_item_id))
@@ -64,7 +82,13 @@ def get_order_item_by_id(order_item_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/order/{order_id}", response_model=list[OrderItemListResponse])
-def get_order_items_by_order(order_id: int, db: Session = Depends(get_db)):
+def get_order_items_by_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_owner_or_admin(order_id, current_user, db)
+
     def _execute():
         use_case = GetOrderItemsByOrderUseCase(
             OrderRepository(db), OrderItemRepository(db)
@@ -77,8 +101,13 @@ def get_order_items_by_order(order_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{order_item_id}/quantity", response_model=OrderItemResponse)
 def update_order_item_quantity(
-    order_item_id: int, payload: OrderItemUpdate, db: Session = Depends(get_db)
+    order_item_id: int,
+    payload: OrderItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_order_item_owner_or_admin(order_item_id, current_user, db)
+
     def _execute():
         use_case = UpdateOrderItemQuantityUseCase(
             OrderRepository(db),
@@ -93,8 +122,12 @@ def update_order_item_quantity(
 
 @router.get("/{order_item_id}/subtotal", response_model=OrderItemSubtotalResponse)
 def calculate_order_item_subtotal(
-    order_item_id: int, db: Session = Depends(get_db)
+    order_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
 ):
+    ensure_order_item_owner_or_admin(order_item_id, current_user, db)
+
     def _execute():
         use_case = CalculateOrderItemSubtotalUseCase(OrderItemRepository(db))
         subtotal = use_case.execute(order_item_id)
@@ -104,7 +137,13 @@ def calculate_order_item_subtotal(
 
 
 @router.delete("/{order_item_id}", response_model=OrderItemResponse)
-def remove_order_item(order_item_id: int, db: Session = Depends(get_db)):
+def remove_order_item(
+    order_item_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    ensure_order_item_owner_or_admin(order_item_id, current_user, db)
+
     def _execute():
         use_case = RemoveOrderItemUseCase(
             OrderRepository(db), OrderItemRepository(db)

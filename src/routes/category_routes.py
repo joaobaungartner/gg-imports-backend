@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
+from src.entities.user import UserEntity
+from src.middlewares.auth import get_current_admin
 from src.repositories.category_repository import CategoryRepository
 from src.routes.mappers import to_category_list_response, to_category_response
 from src.routes.utils import run_use_case
@@ -24,8 +26,11 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
-def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
-    # TODO: validar permissão de Admin quando middleware existir
+def create_category(
+    payload: CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         repository = CategoryRepository(db)
         use_case = CreateCategoryUseCase(repository)
@@ -71,9 +76,11 @@ def get_category_by_name(nome: str, db: Session = Depends(get_db)):
 
 @router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(
-    category_id: int, payload: CategoryUpdate, db: Session = Depends(get_db)
+    category_id: int,
+    payload: CategoryUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
 ):
-    # TODO: validar permissão de Admin quando middleware existir
     def _execute():
         repository = CategoryRepository(db)
         use_case = UpdateCategoryUseCase(repository)
@@ -89,7 +96,11 @@ def update_category(
 
 
 @router.patch("/{category_id}/activate", response_model=CategoryResponse)
-def activate_category(category_id: int, db: Session = Depends(get_db)):
+def activate_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         repository = CategoryRepository(db)
         use_case = ActivateCategoryUseCase(repository)
@@ -99,7 +110,11 @@ def activate_category(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{category_id}/deactivate", response_model=CategoryResponse)
-def deactivate_category(category_id: int, db: Session = Depends(get_db)):
+def deactivate_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         repository = CategoryRepository(db)
         use_case = DeactivateCategoryUseCase(repository)
@@ -109,7 +124,11 @@ def deactivate_category(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{category_id}", response_model=CategoryResponse)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
     def _execute():
         from src.repositories.product_repository import ProductRepository
 
