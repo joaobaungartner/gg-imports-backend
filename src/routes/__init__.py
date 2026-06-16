@@ -1,6 +1,7 @@
 """Rotas da API GG Imports."""
 
 __all__ = [
+    "auth_router",
     "address_router",
     "admin_router",
     "cart_item_router",

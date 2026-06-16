@@ -1,3 +1,4 @@
+from src.schemas.auth_schema import AuthLogin, TokenResponse
 from src.schemas.address_schema import (
     AddressCreate,
     AddressForOrderResponse,
@@ -81,6 +82,8 @@ from src.schemas.order_schema import (
 from src.schemas.user_schema import UserCreate, UserLogin, UserResponse, UserUpdate
 
 __all__ = [
+    "AuthLogin",
+    "TokenResponse",
     "UserCreate",
     "UserUpdate",
     "UserResponse",
