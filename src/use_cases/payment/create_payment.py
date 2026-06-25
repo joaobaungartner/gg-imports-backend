@@ -52,10 +52,4 @@ class CreatePaymentUseCase:
             status=PaymentStatus.PENDING,
         )
 
-        created_payment = self.payment_repository.create(payment)
-
-        self.order_repository.update(
-            order_id, {"pagamento_id": created_payment.id}
-        )
-
-        return created_payment
+        return self.payment_repository.create(payment)
