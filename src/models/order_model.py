@@ -16,9 +16,6 @@ class OrderModel(Base):
     endereco_id = Column(
         Integer, ForeignKey("addresses.id"), nullable=False, index=True
     )
-    pagamento_id = Column(
-        Integer, ForeignKey("payments.id"), nullable=True, index=True
-    )
     cupom_id = Column(
         Integer, ForeignKey("coupons.id"), nullable=True, index=True
     )
@@ -36,6 +33,7 @@ class OrderModel(Base):
         back_populates="order",
         uselist=False,
         foreign_keys="PaymentModel.order_id",
+        primaryjoin="OrderModel.id == PaymentModel.order_id",
     )
     itens = relationship(
         "OrderItemModel",

@@ -44,7 +44,7 @@ class OrderRepository:
             data_pedido=model.data_pedido,
             valor_total=Decimal(str(model.valor_total)),
             status=OrderStatus(model.status),
-            pagamento_id=model.pagamento_id,
+            pagamento_id=model.pagamento.id if model.pagamento else None,
             cupom_id=model.cupom_id,
             desconto_cupom=Decimal(str(model.desconto_cupom)),
             ativo=model.ativo,
@@ -59,7 +59,6 @@ class OrderRepository:
             "valor_total": entity.valor_total,
             "desconto_cupom": entity.desconto_cupom,
             "status": entity.status.value,
-            "pagamento_id": entity.pagamento_id,
             "cupom_id": entity.cupom_id,
             "ativo": entity.ativo,
         }
@@ -70,7 +69,10 @@ class OrderRepository:
     def _load_order(self, order_id: int) -> OrderModel | None:
         return (
             self.db.query(OrderModel)
-            .options(joinedload(OrderModel.itens))
+            .options(
+                joinedload(OrderModel.itens),
+                joinedload(OrderModel.pagamento),
+            )
             .filter(OrderModel.id == order_id)
             .first()
         )
@@ -96,7 +98,10 @@ class OrderRepository:
     def get_by_client_id(self, client_id: int) -> list[OrderEntity]:
         models = (
             self.db.query(OrderModel)
-            .options(joinedload(OrderModel.itens))
+            .options(
+                joinedload(OrderModel.itens),
+                joinedload(OrderModel.pagamento),
+            )
             .filter(OrderModel.client_id == client_id)
             .all()
         )
@@ -105,7 +110,10 @@ class OrderRepository:
     def list_all(self) -> list[OrderEntity]:
         models = (
             self.db.query(OrderModel)
-            .options(joinedload(OrderModel.itens))
+            .options(
+                joinedload(OrderModel.itens),
+                joinedload(OrderModel.pagamento),
+            )
             .all()
         )
         return [self._to_entity(model) for model in models]
@@ -113,7 +121,10 @@ class OrderRepository:
     def list_by_status(self, status: str) -> list[OrderEntity]:
         models = (
             self.db.query(OrderModel)
-            .options(joinedload(OrderModel.itens))
+            .options(
+                joinedload(OrderModel.itens),
+                joinedload(OrderModel.pagamento),
+            )
             .filter(OrderModel.status == status)
             .all()
         )

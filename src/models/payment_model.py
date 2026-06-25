@@ -18,4 +18,8 @@ class PaymentModel(Base):
     data_pagamento = Column(DateTime, nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
-    order = relationship("OrderModel", back_populates="pagamento")
+    order = relationship(
+        "OrderModel",
+        back_populates="pagamento",
+        foreign_keys=[order_id],
+    )
