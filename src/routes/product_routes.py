@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
@@ -13,16 +12,16 @@ from src.routes.mappers import (
     to_product_list_response,
     to_product_response,
 )
-from src.routes.utils import run_use_case
+from src.routes.utils import handle_value_error, run_use_case
 from src.schemas.product_schema import (
     ProductAvailabilityResponse,
-    ProductCreate,
     ProductListResponse,
     ProductResponse,
     ProductStockChange,
     ProductStockUpdate,
     ProductUpdate,
 )
+from src.services.storage_service import StorageService
 from src.use_cases.product.activate_product import ActivateProductUseCase
 from src.use_cases.product.check_product_availability import (
     CheckProductAvailabilityUseCase,
@@ -44,26 +43,45 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
-def create_product(
-    payload: ProductCreate,
+async def create_product(
+    category_id: int = Form(..., gt=0),
+    nome: str = Form(..., min_length=1),
+    preco: float = Form(..., gt=0),
+    tamanho: str = Form(..., min_length=1),
+    clube: str = Form(..., min_length=1),
+    tipo: str = Form(..., min_length=1),
+    estoque: int = Form(..., ge=0),
+    descricao: str | None = Form(default=None),
+    imagem_url: str | None = Form(default=None),
+    ativo: bool = Form(default=True),
+    imagem: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_admin),
 ):
+    resolved_imagem_url = imagem_url.strip() if imagem_url and imagem_url.strip() else None
+
+    if imagem and imagem.filename:
+        try:
+            storage = StorageService()
+            resolved_imagem_url = await storage.upload_product_image(imagem)
+        except ValueError as error:
+            raise handle_value_error(error) from error
+
     def _execute():
         use_case = CreateProductUseCase(
             CategoryRepository(db), ProductRepository(db)
         )
         product = use_case.execute(
-            category_id=payload.category_id,
-            nome=payload.nome,
-            preco=payload.preco,
-            tamanho=payload.tamanho,
-            clube=payload.clube,
-            tipo=payload.tipo,
-            descricao=payload.descricao,
-            estoque=payload.estoque,
-            imagem_url=payload.imagem_url,
-            ativo=payload.ativo if payload.ativo is not None else True,
+            category_id=category_id,
+            nome=nome,
+            preco=preco,
+            tamanho=tamanho,
+            clube=clube,
+            tipo=tipo,
+            descricao=descricao,
+            estoque=estoque,
+            imagem_url=resolved_imagem_url,
+            ativo=ativo,
         )
         return to_product_response(product)
 
