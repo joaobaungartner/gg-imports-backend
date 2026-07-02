@@ -73,6 +73,7 @@ class ProductListResponse(BaseModel):
     id: int
     category_id: int
     nome: str
+    descricao: str | None
     preco: Decimal
     tamanho: str
     clube: str
@@ -83,3 +84,12 @@ class ProductListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProductIdsRequest(BaseModel):
+    product_ids: list[int] = Field(..., min_length=1)
+
+
+class ProductBulkActionResponse(BaseModel):
+    message: str
+    product_ids: list[int]

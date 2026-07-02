@@ -120,6 +120,7 @@ def to_product_list_response(product: ProductEntity) -> ProductListResponse:
         id=product.id,
         category_id=product.category_id,
         nome=product.nome,
+        descricao=product.descricao,
         preco=product.preco,
         tamanho=product.tamanho,
         clube=product.clube,
