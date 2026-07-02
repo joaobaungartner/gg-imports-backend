@@ -15,6 +15,8 @@ from src.routes.mappers import (
 from src.routes.utils import handle_value_error, run_use_case
 from src.schemas.product_schema import (
     ProductAvailabilityResponse,
+    ProductBulkActionResponse,
+    ProductIdsRequest,
     ProductListResponse,
     ProductResponse,
     ProductStockChange,
@@ -22,13 +24,16 @@ from src.schemas.product_schema import (
     ProductUpdate,
 )
 from src.services.storage_service import StorageService
+from src.use_cases.product.activate_many_products import ActivateManyProductsUseCase
 from src.use_cases.product.activate_product import ActivateProductUseCase
 from src.use_cases.product.check_product_availability import (
     CheckProductAvailabilityUseCase,
 )
 from src.use_cases.product.create_product import CreateProductUseCase
+from src.use_cases.product.deactivate_many_products import DeactivateManyProductsUseCase
 from src.use_cases.product.deactivate_product import DeactivateProductUseCase
 from src.use_cases.product.decrease_product_stock import DecreaseProductStockUseCase
+from src.use_cases.product.delete_many_products import DeleteManyProductsUseCase
 from src.use_cases.product.delete_product import DeleteProductUseCase
 from src.use_cases.product.get_product_by_id import GetProductByIdUseCase
 from src.use_cases.product.get_product_by_name import GetProductByNameUseCase
@@ -142,6 +147,62 @@ def get_product_by_name(nome: str, db: Session = Depends(get_db)):
     def _execute():
         use_case = GetProductByNameUseCase(ProductRepository(db))
         return to_product_response(use_case.execute(nome))
+
+    return run_use_case(_execute)
+
+
+    return run_use_case(_execute)
+
+
+@router.patch("/deactivate-many", response_model=ProductBulkActionResponse)
+def deactivate_many_products(
+    payload: ProductIdsRequest,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    def _execute():
+        use_case = DeactivateManyProductsUseCase(ProductRepository(db))
+        products = use_case.execute(payload.product_ids)
+        return ProductBulkActionResponse(
+            message="Produtos desativados com sucesso.",
+            product_ids=[product.id for product in products],
+        )
+
+    return run_use_case(_execute)
+
+
+@router.patch("/activate-many", response_model=ProductBulkActionResponse)
+def activate_many_products(
+    payload: ProductIdsRequest,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    def _execute():
+        use_case = ActivateManyProductsUseCase(ProductRepository(db))
+        products = use_case.execute(payload.product_ids)
+        return ProductBulkActionResponse(
+            message="Produtos ativados com sucesso.",
+            product_ids=[product.id for product in products],
+        )
+
+    return run_use_case(_execute)
+
+
+@router.delete("/delete-many", response_model=ProductBulkActionResponse)
+def delete_many_products(
+    payload: ProductIdsRequest,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    def _execute():
+        use_case = DeleteManyProductsUseCase(
+            ProductRepository(db), OrderItemRepository(db)
+        )
+        products = use_case.execute(payload.product_ids)
+        return ProductBulkActionResponse(
+            message="Produtos excluídos com sucesso.",
+            product_ids=[product.id for product in products],
+        )
 
     return run_use_case(_execute)
 
