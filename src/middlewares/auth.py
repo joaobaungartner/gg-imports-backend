@@ -19,6 +19,38 @@ from src.utils.jwt import decode_access_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
+def _resolve_user_from_token(token: str | None, db: Session) -> UserEntity | None:
+    if not token:
+        return None
+
+    try:
+        payload = decode_access_token(token)
+    except (ExpiredSignatureError, JWTError):
+        return None
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        return None
+
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return None
+
+    user = UserRepository(db).get_by_id(user_id_int)
+    if not user or not user.ativo:
+        return None
+
+    return user
+
+
+def get_optional_user(
+    token: str | None = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> UserEntity | None:
+    return _resolve_user_from_token(token, db)
+
+
 def get_current_user(
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
@@ -170,7 +202,11 @@ def ensure_cart_item_owner_or_admin(
 
 
 def ensure_order_owner_or_admin(
-    order_id: int, current_user: UserEntity, db: Session
+    order_id: int,
+    current_user: UserEntity | None,
+    db: Session,
+    *,
+    allow_public_guest: bool = False,
 ) -> None:
     order = OrderRepository(db).get_by_id(order_id)
     if not order:
@@ -178,6 +214,25 @@ def ensure_order_owner_or_admin(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pedido não encontrado",
         )
+
+    is_guest_order = order.client_id is None
+
+    if is_guest_order:
+        if allow_public_guest:
+            return
+        if current_user is None or not current_user.is_admin():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão negada",
+            )
+        return
+
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticação ausente ou inválido",
+        )
+
     ensure_client_owner_or_admin(order.client_id, current_user, db)
 
 

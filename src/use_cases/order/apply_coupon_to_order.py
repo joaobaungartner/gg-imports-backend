@@ -19,7 +19,7 @@ class ApplyCouponToOrderUseCase:
         if not order:
             raise ValueError("Pedido não encontrado")
 
-        if order.status not in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
+        if order.status not in (OrderStatus.PENDING_PAYMENT, OrderStatus.PAID):
             raise ValueError("Pedido não pode ser alterado")
 
         coupon = self.coupon_repository.get_by_id(cupom_id)

@@ -181,6 +181,9 @@ def to_order_item_response(item: OrderItemEntity) -> OrderItemResponse:
         id=item.id,
         order_id=item.order_id,
         product_id=item.product_id,
+        nome_produto=item.nome_produto,
+        imagem_url=item.imagem_url,
+        tamanho=item.tamanho,
         quantidade=item.quantidade,
         preco_unitario=item.preco_unitario,
         subtotal=item.subtotal(),
@@ -192,6 +195,9 @@ def to_nested_order_item_response(item: OrderItemEntity) -> NestedOrderItemRespo
     return NestedOrderItemResponse(
         id=item.id,
         product_id=item.product_id,
+        nome_produto=item.nome_produto,
+        imagem_url=item.imagem_url,
+        tamanho=item.tamanho,
         quantidade=item.quantidade,
         preco_unitario=item.preco_unitario,
         subtotal=item.subtotal(),
@@ -215,8 +221,23 @@ def to_order_response(order: OrderEntity) -> OrderResponse:
         id=order.id,
         client_id=order.client_id,
         endereco_id=order.endereco_id,
+        customer_name=order.customer_name,
+        customer_email=order.customer_email,
+        customer_phone=order.customer_phone,
+        customer_cpf=order.customer_cpf,
+        shipping_cep=order.shipping_cep,
+        shipping_street=order.shipping_street,
+        shipping_number=order.shipping_number,
+        shipping_complement=order.shipping_complement,
+        shipping_neighborhood=order.shipping_neighborhood,
+        shipping_city=order.shipping_city,
+        shipping_state=order.shipping_state,
+        shipping_method=order.shipping_method,
+        payment_method=order.payment_method,
         pagamento_id=order.pagamento_id,
         cupom_id=order.cupom_id,
+        subtotal=order.subtotal,
+        frete=order.frete,
         data_pedido=order.data_pedido,
         valor_total=order.valor_total,
         status=_enum_value(order.status),
@@ -226,13 +247,22 @@ def to_order_response(order: OrderEntity) -> OrderResponse:
 
 
 def to_order_list_response(order: OrderEntity) -> OrderListResponse:
+    item_count = sum(
+        item.quantidade for item in order.itens if item.ativo
+    )
     return OrderListResponse(
         id=order.id,
         client_id=order.client_id,
+        customer_name=order.customer_name,
         data_pedido=order.data_pedido,
+        subtotal=order.subtotal,
+        frete=order.frete,
         valor_total=order.valor_total,
         status=_enum_value(order.status),
         ativo=order.ativo,
+        item_count=item_count,
+        payment_method=order.payment_method,
+        shipping_method=order.shipping_method,
     )
 
 

@@ -11,7 +11,7 @@ class RemoveOrderItemUseCase:
         if not order:
             raise ValueError("Pedido não encontrado")
 
-        if order.status == OrderStatus.CONFIRMED and len(order.itens) <= 1:
+        if order.status == OrderStatus.PAID and len(order.itens) <= 1:
             raise ValueError("Pedido sem itens")
 
         order.remover_item(item_id)

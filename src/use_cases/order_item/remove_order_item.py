@@ -5,9 +5,8 @@ from src.repositories.order_repository import OrderRepository
 
 
 _BLOCKED_STATUSES = {
-    OrderStatus.CONFIRMED,
     OrderStatus.PAID,
-    OrderStatus.PROCESSING,
+    OrderStatus.PREPARING,
     OrderStatus.SHIPPED,
     OrderStatus.DELIVERED,
 }

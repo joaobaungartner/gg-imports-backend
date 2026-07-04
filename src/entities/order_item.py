@@ -9,6 +9,9 @@ class OrderItemEntity:
     preco_unitario: Decimal
     id: int | None = None
     order_id: int | None = None
+    nome_produto: str | None = None
+    imagem_url: str | None = None
+    tamanho: str | None = None
     ativo: bool = True
 
     def __post_init__(self) -> None:

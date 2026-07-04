@@ -32,7 +32,7 @@ class ConfirmPaymentUseCase:
             raise ValueError("Pagamento não encontrado")
 
         order = self.order_repository.get_by_id(payment.order_id)
-        if order and order.status == OrderStatus.CONFIRMED:
+        if order and order.status == OrderStatus.PENDING_PAYMENT:
             order.marcar_como_pago()
             self.order_repository.update_status(
                 payment.order_id, order.status.value

@@ -77,7 +77,7 @@ class CreateOrderUseCase:
             id=None,
             client_id=client_id,
             endereco_id=endereco_id,
-            status=OrderStatus.PENDING,
+            status=OrderStatus.PENDING_PAYMENT,
             cupom_id=cupom_id,
         )
 

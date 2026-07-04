@@ -7,20 +7,18 @@ from src.entities.order_item import OrderItemEntity
 
 
 class OrderStatus(str, Enum):
-    PENDING = "PENDING"
-    CONFIRMED = "CONFIRMED"
+    PENDING_PAYMENT = "PENDING_PAYMENT"
     PAID = "PAID"
-    PROCESSING = "PROCESSING"
+    PREPARING = "PREPARING"
     SHIPPED = "SHIPPED"
     DELIVERED = "DELIVERED"
     CANCELED = "CANCELED"
 
 
 VALID_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
-    OrderStatus.PENDING: {OrderStatus.CONFIRMED, OrderStatus.CANCELED},
-    OrderStatus.CONFIRMED: {OrderStatus.PAID, OrderStatus.CANCELED},
-    OrderStatus.PAID: {OrderStatus.PROCESSING},
-    OrderStatus.PROCESSING: {OrderStatus.SHIPPED},
+    OrderStatus.PENDING_PAYMENT: {OrderStatus.PAID, OrderStatus.CANCELED},
+    OrderStatus.PAID: {OrderStatus.PREPARING, OrderStatus.CANCELED},
+    OrderStatus.PREPARING: {OrderStatus.SHIPPED},
     OrderStatus.SHIPPED: {OrderStatus.DELIVERED},
     OrderStatus.DELIVERED: set(),
     OrderStatus.CANCELED: set(),
@@ -30,11 +28,26 @@ VALID_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
 @dataclass
 class OrderEntity:
     id: int | None
-    client_id: int
-    endereco_id: int
+    client_id: int | None = None
+    endereco_id: int | None = None
+    customer_name: str | None = None
+    customer_email: str | None = None
+    customer_phone: str | None = None
+    customer_cpf: str | None = None
+    shipping_cep: str | None = None
+    shipping_street: str | None = None
+    shipping_number: str | None = None
+    shipping_complement: str | None = None
+    shipping_neighborhood: str | None = None
+    shipping_city: str | None = None
+    shipping_state: str | None = None
+    shipping_method: str | None = None
+    payment_method: str | None = None
     data_pedido: datetime | None = None
+    subtotal: Decimal = field(default_factory=lambda: Decimal("0"))
+    frete: Decimal = field(default_factory=lambda: Decimal("0"))
     valor_total: Decimal = field(default_factory=lambda: Decimal("0"))
-    status: OrderStatus = OrderStatus.PENDING
+    status: OrderStatus = OrderStatus.PENDING_PAYMENT
     pagamento_id: int | None = None
     cupom_id: int | None = None
     desconto_cupom: Decimal = field(default_factory=lambda: Decimal("0"))
@@ -45,10 +58,21 @@ class OrderEntity:
         self._validate()
 
     def _validate(self) -> None:
-        if not self.client_id:
-            raise ValueError("Cliente não encontrado")
-        if not self.endereco_id:
-            raise ValueError("Endereço não encontrado")
+        has_legacy_refs = bool(self.client_id and self.endereco_id)
+        has_checkout_data = bool(
+            self.customer_name
+            and self.customer_email
+            and self.shipping_cep
+            and self.shipping_street
+            and self.shipping_number
+            and self.shipping_neighborhood
+            and self.shipping_city
+            and self.shipping_state
+        )
+
+        if not has_legacy_refs and not has_checkout_data:
+            raise ValueError("Dados do pedido incompletos")
+
         if self.valor_total < 0:
             raise ValueError("Valor total não pode ser negativo")
 
@@ -57,7 +81,8 @@ class OrderEntity:
             (item.subtotal() for item in self.itens if item.ativo),
             Decimal("0"),
         )
-        total = subtotal - self.desconto_cupom
+        self.subtotal = subtotal
+        total = subtotal + self.frete - self.desconto_cupom
         if total < 0:
             total = Decimal("0")
         self.valor_total = total
@@ -96,10 +121,7 @@ class OrderEntity:
         self.calcular_total()
 
     def validar_pedido(self) -> None:
-        if not self.client_id:
-            raise ValueError("Cliente não encontrado")
-        if not self.endereco_id:
-            raise ValueError("Endereço não encontrado")
+        self._validate()
         if self.valor_total < 0:
             raise ValueError("Valor total não pode ser negativo")
 
@@ -113,7 +135,7 @@ class OrderEntity:
     def cancelar_pedido(self) -> None:
         if not self.can_cancel():
             raise ValueError("Pedido não pode ser cancelado")
-        if self.status in (OrderStatus.PENDING, OrderStatus.CONFIRMED):
+        if self.status in (OrderStatus.PENDING_PAYMENT, OrderStatus.PAID):
             self.alterar_status(OrderStatus.CANCELED)
         else:
             self.status = OrderStatus.CANCELED
@@ -122,7 +144,7 @@ class OrderEntity:
         if len(self.itens) < 1:
             raise ValueError("Pedido sem itens")
         self.validar_pedido()
-        self.alterar_status(OrderStatus.CONFIRMED)
+        self.alterar_status(OrderStatus.PAID)
 
     def marcar_como_pago(self) -> None:
         self.alterar_status(OrderStatus.PAID)

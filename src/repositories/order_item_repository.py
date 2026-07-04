@@ -17,6 +17,9 @@ class OrderItemRepository:
             product_id=model.product_id,
             quantidade=model.quantidade,
             preco_unitario=Decimal(str(model.preco_unitario)),
+            nome_produto=model.nome_produto,
+            imagem_url=model.imagem_url,
+            tamanho=model.tamanho,
             ativo=model.ativo,
         )
 
@@ -26,6 +29,9 @@ class OrderItemRepository:
             "product_id": entity.product_id,
             "quantidade": entity.quantidade,
             "preco_unitario": entity.preco_unitario,
+            "nome_produto": entity.nome_produto,
+            "imagem_url": entity.imagem_url,
+            "tamanho": entity.tamanho,
             "ativo": entity.ativo,
         }
         if entity.id is not None:

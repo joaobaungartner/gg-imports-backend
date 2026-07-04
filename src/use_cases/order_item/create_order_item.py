@@ -50,7 +50,7 @@ class CreateOrderItemUseCase:
         if not order:
             raise ValueError("Pedido não encontrado")
 
-        if order.status != OrderStatus.PENDING:
+        if order.status != OrderStatus.PENDING_PAYMENT:
             raise ValueError("Pedido não permite alteração de itens")
 
         if quantidade <= 0:

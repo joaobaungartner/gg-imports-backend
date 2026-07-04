@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 from src.database.database import get_db
 from src.entities.user import UserEntity
 from src.middlewares.auth import (
-    ensure_client_owner_or_admin,
     ensure_order_owner_or_admin,
     get_current_admin,
     get_current_user,
+    get_optional_user,
 )
 from src.repositories.address_repository import AddressRepository
 from src.repositories.client_repository import ClientRepository
@@ -26,7 +26,10 @@ from src.schemas.order_schema import (
     OrderListResponse,
     OrderResponse,
     OrderStatusUpdate,
+    OrderTrackRequest,
 )
+from src.use_cases.order.get_my_orders import GetMyOrdersUseCase
+from src.use_cases.order.track_order import TrackOrderUseCase
 from src.use_cases.address.validate_address_for_order import (
     ValidateAddressForOrderUseCase,
 )
@@ -35,7 +38,7 @@ from src.use_cases.order.apply_coupon_to_order import ApplyCouponToOrderUseCase
 from src.use_cases.order.calculate_order_total import CalculateOrderTotalUseCase
 from src.use_cases.order.cancel_order import CancelOrderUseCase
 from src.use_cases.order.confirm_order import ConfirmOrderUseCase
-from src.use_cases.order.create_order import CreateOrderUseCase
+from src.use_cases.order.create_checkout_order import CreateCheckoutOrderUseCase
 from src.use_cases.order.get_order_by_id import GetOrderByIdUseCase
 from src.use_cases.order.get_orders_by_client import GetOrdersByClientUseCase
 from src.use_cases.order.list_orders import ListOrdersUseCase
@@ -56,27 +59,64 @@ def create_order(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    ensure_client_owner_or_admin(payload.client_id, current_user, db)
-
     def _execute():
-        validate_address = ValidateAddressForOrderUseCase(AddressRepository(db))
-        use_case = CreateOrderUseCase(
-            ClientRepository(db),
+        use_case = CreateCheckoutOrderUseCase(
             OrderRepository(db),
-            validate_address,
-            CouponRepository(db),
             ProductRepository(db),
+            ClientRepository(db),
         )
-        itens = [
-            {"product_id": item.product_id, "quantidade": item.quantidade}
-            for item in payload.itens
+        items = [
+            {
+                "product_id": item.product_id,
+                "name": item.name,
+                "image_url": item.image_url,
+                "size": item.size,
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
+            }
+            for item in payload.items
         ]
         order = use_case.execute(
-            payload.client_id,
-            payload.endereco_id,
-            itens,
-            payload.cupom_id,
+            customer_name=payload.customer_name,
+            customer_email=payload.customer_email,
+            customer_phone=payload.customer_phone,
+            customer_cpf=payload.customer_cpf,
+            shipping_address=payload.shipping_address.model_dump(),
+            shipping_method=payload.shipping_method,
+            payment_method=payload.payment_method,
+            frete=payload.frete,
+            items=items,
+            authenticated_user_id=current_user.id,
         )
+        return to_order_response(order)
+
+    return run_use_case(_execute)
+
+
+@router.get("/me", response_model=list[OrderListResponse])
+def get_my_orders(
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    def _execute():
+        use_case = GetMyOrdersUseCase(
+            ClientRepository(db),
+            OrderRepository(db),
+        )
+        orders = use_case.execute(current_user.id)
+        return [to_order_list_response(order) for order in orders]
+
+    return run_use_case(_execute)
+
+
+@router.post("/track", response_model=OrderResponse)
+def track_order(
+    payload: OrderTrackRequest,
+    db: Session = Depends(get_db),
+):
+    def _execute():
+        use_case = TrackOrderUseCase(OrderRepository(db))
+        order = use_case.execute(payload.order_id, payload.identifier)
         return to_order_response(order)
 
     return run_use_case(_execute)
@@ -103,6 +143,8 @@ def get_orders_by_client(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
+    from src.middlewares.auth import ensure_client_owner_or_admin
+
     ensure_client_owner_or_admin(client_id, current_user, db)
 
     def _execute():
@@ -119,9 +161,9 @@ def get_orders_by_client(
 def get_order_by_id(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: UserEntity = Depends(get_current_user),
+    current_user: UserEntity | None = Depends(get_optional_user),
 ):
-    ensure_order_owner_or_admin(order_id, current_user, db)
+    ensure_order_owner_or_admin(order_id, current_user, db, allow_public_guest=True)
 
     def _execute():
         use_case = GetOrderByIdUseCase(OrderRepository(db))
@@ -238,7 +280,6 @@ def confirm_order(
 ):
     ensure_order_owner_or_admin(order_id, current_user, db)
 
-    # TODO: integrar validação de estoque via ProductRepository no use case
     def _execute():
         validate_address = ValidateAddressForOrderUseCase(AddressRepository(db))
         use_case = ConfirmOrderUseCase(

@@ -11,18 +11,33 @@ class OrderModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(
-        Integer, ForeignKey("clients.id"), nullable=False, index=True
+        Integer, ForeignKey("clients.id"), nullable=True, index=True
     )
     endereco_id = Column(
-        Integer, ForeignKey("addresses.id"), nullable=False, index=True
+        Integer, ForeignKey("addresses.id"), nullable=True, index=True
     )
+    customer_name = Column(String(255), nullable=True)
+    customer_email = Column(String(255), nullable=True)
+    customer_phone = Column(String(20), nullable=True)
+    customer_cpf = Column(String(11), nullable=True)
+    shipping_cep = Column(String(8), nullable=True)
+    shipping_street = Column(String(255), nullable=True)
+    shipping_number = Column(String(20), nullable=True)
+    shipping_complement = Column(String(255), nullable=True)
+    shipping_neighborhood = Column(String(100), nullable=True)
+    shipping_city = Column(String(100), nullable=True)
+    shipping_state = Column(String(2), nullable=True)
+    shipping_method = Column(String(50), nullable=True)
+    payment_method = Column(String(20), nullable=True)
     cupom_id = Column(
         Integer, ForeignKey("coupons.id"), nullable=True, index=True
     )
     data_pedido = Column(DateTime, default=datetime.utcnow, nullable=False)
+    subtotal = Column(Numeric(10, 2), nullable=False, default=0)
+    frete = Column(Numeric(10, 2), nullable=False, default=0)
     valor_total = Column(Numeric(10, 2), nullable=False, default=0)
     desconto_cupom = Column(Numeric(10, 2), nullable=False, default=0)
-    status = Column(String(20), default="PENDING", nullable=False, index=True)
+    status = Column(String(20), default="PENDING_PAYMENT", nullable=False, index=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
     client = relationship("ClientModel", backref="orders")

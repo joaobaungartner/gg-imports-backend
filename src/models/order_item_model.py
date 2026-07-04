@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 
 from src.database.database import Base
@@ -14,6 +14,9 @@ class OrderItemModel(Base):
     product_id = Column(
         Integer, ForeignKey("products.id"), nullable=False, index=True
     )
+    nome_produto = Column(String(255), nullable=True)
+    imagem_url = Column(String(500), nullable=True)
+    tamanho = Column(String(20), nullable=True)
     quantidade = Column(Integer, nullable=False)
     preco_unitario = Column(Numeric(10, 2), nullable=False)
     ativo = Column(Boolean, default=True, nullable=False)
