@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class ClientCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     nome: str = Field(..., min_length=1)
     email: EmailStr
     senha: str = Field(..., min_length=1)

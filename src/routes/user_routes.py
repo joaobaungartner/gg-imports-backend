@@ -1,15 +1,14 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.database.database import get_db
-from src.entities.user import UserEntity, UserRole
+from src.entities.user import UserEntity
 from src.middlewares.auth import get_current_admin, get_current_user, require_admin_or_self
 from src.repositories.user_repository import UserRepository
 from src.routes.mappers import to_user_response
 from src.routes.utils import run_use_case
-from src.schemas.user_schema import UserCreate, UserLogin, UserResponse, UserUpdate
+from src.schemas.user_schema import UserLogin, UserResponse, UserUpdate
 from src.use_cases.user.authenticate_user import AuthenticateUserUseCase
-from src.use_cases.user.create_user import CreateUserUseCase
 from src.use_cases.user.deactivate_user import DeactivateUserUseCase
 from src.use_cases.user.get_user_by_email import GetUserByEmailUseCase
 from src.use_cases.user.get_user_by_id import GetUserByIdUseCase
@@ -25,25 +24,6 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         repository = UserRepository(db)
         use_case = AuthenticateUserUseCase(repository)
         return to_user_response(use_case.execute(payload.email, payload.senha))
-
-    return run_use_case(_execute)
-
-
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, db: Session = Depends(get_db)):
-    # TODO: proteger criação de usuários com role ADMIN quando autenticação existir
-    def _execute():
-        repository = UserRepository(db)
-        use_case = CreateUserUseCase(repository)
-        role = UserRole(payload.role) if payload.role else UserRole.CLIENTE
-        user = use_case.execute(
-            nome=payload.nome,
-            email=payload.email,
-            senha=payload.senha,
-            telefone=payload.telefone,
-            role=role,
-        )
-        return to_user_response(user)
 
     return run_use_case(_execute)
 
