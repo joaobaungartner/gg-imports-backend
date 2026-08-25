@@ -69,6 +69,13 @@ class OrderItemResponse(BaseModel):
         from_attributes = True
 
 
+class CustomerOrderTimelineItem(BaseModel):
+    status: str
+    label: str
+    message: str
+    created_at: datetime
+
+
 class OrderResponse(BaseModel):
     id: int
     client_id: int | None = None
@@ -91,10 +98,12 @@ class OrderResponse(BaseModel):
     subtotal: Decimal
     frete: Decimal
     data_pedido: datetime
+    updated_at: datetime | None = None
     valor_total: Decimal
     status: str
     ativo: bool
     itens: list[OrderItemResponse]
+    timeline: list[CustomerOrderTimelineItem] = []
 
     class Config:
         from_attributes = True

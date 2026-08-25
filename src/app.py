@@ -11,6 +11,12 @@ from src.routes.auth_routes import router as auth_router
 from src.routes.shipping_routes import router as shipping_router
 from src.routes.address_routes import router as address_router
 from src.routes.admin_routes import router as admin_router
+from src.routes.admin_order_routes import router as admin_order_router
+from src.routes.admin_collection_routes import router as admin_collection_router
+from src.routes.site_content_routes import (
+    admin_router as admin_site_content_router,
+    public_router as site_content_router,
+)
 from src.routes.cart_item_routes import router as cart_item_router
 from src.routes.cart_routes import router as cart_router
 from src.routes.category_routes import router as category_router
@@ -44,6 +50,10 @@ app.include_router(shipping_router)
 app.include_router(user_router)
 app.include_router(client_router)
 app.include_router(admin_router)
+app.include_router(admin_order_router)
+app.include_router(admin_collection_router)
+app.include_router(admin_site_content_router)
+app.include_router(site_content_router)
 app.include_router(category_router)
 app.include_router(product_router)
 app.include_router(cart_router)

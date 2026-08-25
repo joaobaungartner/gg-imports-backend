@@ -33,11 +33,13 @@ class OrderModel(Base):
         Integer, ForeignKey("coupons.id"), nullable=True, index=True
     )
     data_pedido = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+    admin_notes = Column(String(2000), nullable=True)
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)
     frete = Column(Numeric(10, 2), nullable=False, default=0)
     valor_total = Column(Numeric(10, 2), nullable=False, default=0)
     desconto_cupom = Column(Numeric(10, 2), nullable=False, default=0)
-    status = Column(String(20), default="PENDING_PAYMENT", nullable=False, index=True)
+    status = Column(String(30), default="PENDING_PAYMENT", nullable=False, index=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
     client = relationship("ClientModel", backref="orders")
@@ -54,4 +56,10 @@ class OrderModel(Base):
         "OrderItemModel",
         back_populates="order",
         cascade="all, delete-orphan",
+    )
+    status_history = relationship(
+        "OrderStatusHistoryModel",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderStatusHistoryModel.created_at.desc()",
     )

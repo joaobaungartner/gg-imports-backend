@@ -8,7 +8,13 @@ from src.models.coupon_model import CouponModel
 from src.models.payment_model import PaymentModel
 from src.models.order_item_model import OrderItemModel
 from src.models.order_model import OrderModel
+from src.models.order_status_history_model import OrderStatusHistoryModel
+from src.models.product_collection_model import (
+    ProductCollectionItemModel,
+    ProductCollectionModel,
+)
 from src.models.product_model import ProductModel
+from src.models.site_content_model import SiteContentModel
 from src.models.user_model import UserModel
 
 __all__ = [
@@ -20,8 +26,12 @@ __all__ = [
     "CartItemModel",
     "CategoryModel",
     "ProductModel",
+    "ProductCollectionModel",
+    "ProductCollectionItemModel",
+    "SiteContentModel",
     "CouponModel",
     "OrderModel",
     "OrderItemModel",
+    "OrderStatusHistoryModel",
     "PaymentModel",
 ]

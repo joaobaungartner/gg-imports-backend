@@ -6,6 +6,7 @@ from src.entities.user import UserEntity
 from src.middlewares.auth import get_current_admin, get_current_user
 from src.repositories.category_repository import CategoryRepository
 from src.repositories.order_item_repository import OrderItemRepository
+from src.repositories.product_collection_repository import ProductCollectionRepository
 from src.repositories.product_repository import ProductRepository
 from src.routes.mappers import (
     to_product_availability_response,
@@ -100,9 +101,31 @@ def list_products(
     clube: str | None = Query(default=None),
     tipo: str | None = Query(default=None),
     tamanho: str | None = Query(default=None),
+    collection: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     def _execute():
+        if collection:
+            if collection not in ProductCollectionRepository.VALID_SLUGS:
+                raise ValueError("Coleção inválida")
+            collection_repo = ProductCollectionRepository(db)
+            active_only = active is not False
+            models = collection_repo.list_products_in_collection(
+                collection,
+                active_only=active_only if active is not None else True,
+            )
+            product_repo = ProductRepository(db)
+            products = [product_repo._to_entity(model) for model in models]
+            if category_id is not None:
+                products = [p for p in products if p.category_id == category_id]
+            if clube is not None:
+                products = [p for p in products if p.clube == clube.strip()]
+            if tipo is not None:
+                products = [p for p in products if p.tipo == tipo.strip()]
+            if tamanho is not None:
+                products = [p for p in products if p.tamanho == tamanho.strip()]
+            return [to_product_list_response(product) for product in products]
+
         use_case = ListProductsUseCase(ProductRepository(db))
         products = use_case.execute(
             ativo=active,

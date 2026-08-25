@@ -11,6 +11,7 @@ class OrderStatus(str, Enum):
     PAID = "PAID"
     PREPARING = "PREPARING"
     SHIPPED = "SHIPPED"
+    READY_FOR_PICKUP = "READY_FOR_PICKUP"
     DELIVERED = "DELIVERED"
     CANCELED = "CANCELED"
 
@@ -18,11 +19,19 @@ class OrderStatus(str, Enum):
 VALID_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
     OrderStatus.PENDING_PAYMENT: {OrderStatus.PAID, OrderStatus.CANCELED},
     OrderStatus.PAID: {OrderStatus.PREPARING, OrderStatus.CANCELED},
-    OrderStatus.PREPARING: {OrderStatus.SHIPPED},
+    OrderStatus.PREPARING: {
+        OrderStatus.SHIPPED,
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.CANCELED,
+    },
     OrderStatus.SHIPPED: {OrderStatus.DELIVERED},
+    OrderStatus.READY_FOR_PICKUP: {OrderStatus.DELIVERED, OrderStatus.CANCELED},
     OrderStatus.DELIVERED: set(),
     OrderStatus.CANCELED: set(),
 }
+
+SHIPPING_METHOD_ENTREGA = "ENTREGA"
+SHIPPING_METHOD_RETIRADA = "RETIRADA"
 
 
 @dataclass
@@ -44,6 +53,8 @@ class OrderEntity:
     shipping_method: str | None = None
     payment_method: str | None = None
     data_pedido: datetime | None = None
+    updated_at: datetime | None = None
+    admin_notes: str | None = None
     subtotal: Decimal = field(default_factory=lambda: Decimal("0"))
     frete: Decimal = field(default_factory=lambda: Decimal("0"))
     valor_total: Decimal = field(default_factory=lambda: Decimal("0"))
@@ -76,6 +87,9 @@ class OrderEntity:
         if self.valor_total < 0:
             raise ValueError("Valor total não pode ser negativo")
 
+    def is_retirada(self) -> bool:
+        return (self.shipping_method or "").upper() == SHIPPING_METHOD_RETIRADA
+
     def calcular_total(self) -> Decimal:
         subtotal = sum(
             (item.subtotal() for item in self.itens if item.ativo),
@@ -88,11 +102,34 @@ class OrderEntity:
         self.valor_total = total
         return self.valor_total
 
-    def alterar_status(self, novo_status: OrderStatus) -> None:
+    def allowed_transitions(self) -> set[OrderStatus]:
+        allowed = set(VALID_TRANSITIONS.get(self.status, set()))
+        if self.is_retirada():
+            allowed.discard(OrderStatus.SHIPPED)
+        else:
+            allowed.discard(OrderStatus.READY_FOR_PICKUP)
+        return allowed
+
+    def alterar_status(
+        self,
+        novo_status: OrderStatus,
+        *,
+        force: bool = False,
+    ) -> None:
         if isinstance(novo_status, str):
             novo_status = OrderStatus(novo_status)
 
-        allowed = VALID_TRANSITIONS.get(self.status, set())
+        if novo_status == OrderStatus.SHIPPED and self.is_retirada():
+            raise ValueError("Pedido de retirada não pode ser marcado como enviado")
+
+        if novo_status == OrderStatus.READY_FOR_PICKUP and not self.is_retirada():
+            raise ValueError("Pedido de entrega não pode ser marcado como pronto para retirada")
+
+        if force:
+            self.status = novo_status
+            return
+
+        allowed = self.allowed_transitions()
         if novo_status not in allowed:
             raise ValueError("Transição de status inválida")
 
@@ -135,7 +172,7 @@ class OrderEntity:
     def cancelar_pedido(self) -> None:
         if not self.can_cancel():
             raise ValueError("Pedido não pode ser cancelado")
-        if self.status in (OrderStatus.PENDING_PAYMENT, OrderStatus.PAID):
+        if OrderStatus.CANCELED in self.allowed_transitions():
             self.alterar_status(OrderStatus.CANCELED)
         else:
             self.status = OrderStatus.CANCELED

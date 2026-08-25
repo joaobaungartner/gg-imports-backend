@@ -17,6 +17,9 @@ from src.repositories.client_repository import ClientRepository
 from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_item_repository import OrderItemRepository
 from src.repositories.order_repository import OrderRepository
+from src.repositories.order_status_history_repository import (
+    OrderStatusHistoryRepository,
+)
 from src.repositories.product_repository import ProductRepository
 from src.routes.mappers import to_order_list_response, to_order_response
 from src.routes.utils import run_use_case
@@ -88,7 +91,8 @@ def create_order(
             items=items,
             authenticated_user_id=current_user.id,
         )
-        return to_order_response(order)
+        history = OrderStatusHistoryRepository(db).list_by_order_id(order.id)
+        return to_order_response(order, timeline=history)
 
     return run_use_case(_execute)
 
@@ -117,7 +121,8 @@ def track_order(
     def _execute():
         use_case = TrackOrderUseCase(OrderRepository(db))
         order = use_case.execute(payload.order_id, payload.identifier)
-        return to_order_response(order)
+        history = OrderStatusHistoryRepository(db).list_by_order_id(order.id)
+        return to_order_response(order, timeline=history)
 
     return run_use_case(_execute)
 
@@ -167,7 +172,9 @@ def get_order_by_id(
 
     def _execute():
         use_case = GetOrderByIdUseCase(OrderRepository(db))
-        return to_order_response(use_case.execute(order_id))
+        order = use_case.execute(order_id)
+        history = OrderStatusHistoryRepository(db).list_by_order_id(order_id)
+        return to_order_response(order, timeline=history)
 
     return run_use_case(_execute)
 
@@ -180,9 +187,17 @@ def update_order_status(
     current_user: UserEntity = Depends(get_current_admin),
 ):
     def _execute():
-        use_case = UpdateOrderStatusUseCase(OrderRepository(db))
-        order = use_case.execute(order_id, payload.status)
-        return to_order_response(order)
+        use_case = UpdateOrderStatusUseCase(
+            OrderRepository(db),
+            OrderStatusHistoryRepository(db),
+        )
+        order = use_case.execute(
+            order_id,
+            payload.status,
+            admin_id=current_user.id,
+        )
+        history = OrderStatusHistoryRepository(db).list_by_order_id(order_id)
+        return to_order_response(order, timeline=history)
 
     return run_use_case(_execute)
 
@@ -196,8 +211,13 @@ def cancel_order(
     ensure_order_owner_or_admin(order_id, current_user, db)
 
     def _execute():
-        use_case = CancelOrderUseCase(OrderRepository(db))
-        return to_order_response(use_case.execute(order_id))
+        use_case = CancelOrderUseCase(
+            OrderRepository(db),
+            OrderStatusHistoryRepository(db),
+        )
+        order = use_case.execute(order_id, changed_by_user_id=current_user.id)
+        history = OrderStatusHistoryRepository(db).list_by_order_id(order_id)
+        return to_order_response(order, timeline=history)
 
     return run_use_case(_execute)
 

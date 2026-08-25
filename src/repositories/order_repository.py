@@ -1,12 +1,15 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
+from math import ceil
 
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
 from src.models.order_item_model import OrderItemModel
 from src.models.order_model import OrderModel
+from src.models.payment_model import PaymentModel
 
 
 class OrderRepository:
@@ -61,6 +64,8 @@ class OrderRepository:
             shipping_method=model.shipping_method,
             payment_method=model.payment_method,
             data_pedido=model.data_pedido,
+            updated_at=model.updated_at,
+            admin_notes=model.admin_notes,
             subtotal=Decimal(str(model.subtotal)),
             frete=Decimal(str(model.frete)),
             valor_total=Decimal(str(model.valor_total)),
@@ -73,6 +78,7 @@ class OrderRepository:
         )
 
     def _to_model(self, entity: OrderEntity) -> OrderModel:
+        now = datetime.utcnow()
         kwargs = {
             "client_id": entity.client_id,
             "endereco_id": entity.endereco_id,
@@ -89,7 +95,9 @@ class OrderRepository:
             "shipping_state": entity.shipping_state,
             "shipping_method": entity.shipping_method,
             "payment_method": entity.payment_method,
-            "data_pedido": entity.data_pedido or datetime.utcnow(),
+            "data_pedido": entity.data_pedido or now,
+            "updated_at": entity.updated_at or now,
+            "admin_notes": entity.admin_notes,
             "subtotal": entity.subtotal,
             "frete": entity.frete,
             "valor_total": entity.valor_total,
@@ -122,6 +130,19 @@ class OrderRepository:
             item_model = self._item_to_model(item, model.id)
             self.db.add(item_model)
 
+        from src.models.order_status_history_model import OrderStatusHistoryModel
+
+        self.db.add(
+            OrderStatusHistoryModel(
+                order_id=model.id,
+                previous_status=None,
+                new_status=model.status,
+                changed_by_user_id=None,
+                note=None,
+                created_at=datetime.utcnow(),
+            )
+        )
+
         self.db.commit()
         return self._to_entity(self._load_order(model.id))
 
@@ -139,6 +160,7 @@ class OrderRepository:
                 joinedload(OrderModel.pagamento),
             )
             .filter(OrderModel.client_id == client_id)
+            .order_by(OrderModel.data_pedido.desc())
             .all()
         )
         return [self._to_entity(model) for model in models]
@@ -150,6 +172,7 @@ class OrderRepository:
                 joinedload(OrderModel.itens),
                 joinedload(OrderModel.pagamento),
             )
+            .order_by(OrderModel.data_pedido.desc())
             .all()
         )
         return [self._to_entity(model) for model in models]
@@ -162,9 +185,167 @@ class OrderRepository:
                 joinedload(OrderModel.pagamento),
             )
             .filter(OrderModel.status == status)
+            .order_by(OrderModel.data_pedido.desc())
             .all()
         )
         return [self._to_entity(model) for model in models]
+
+    def _apply_admin_filters(
+        self,
+        query,
+        *,
+        status: str | None = None,
+        shipping_method: str | None = None,
+        payment_status: str | None = None,
+        payment_method: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        search: str | None = None,
+    ):
+        if status:
+            query = query.filter(OrderModel.status == status)
+        if shipping_method:
+            query = query.filter(OrderModel.shipping_method == shipping_method.upper())
+        if payment_method:
+            query = query.filter(OrderModel.payment_method == payment_method.upper())
+        if payment_status:
+            query = query.outerjoin(PaymentModel, PaymentModel.order_id == OrderModel.id)
+            if payment_status.upper() == "PENDING_PAYMENT":
+                query = query.filter(
+                    or_(
+                        PaymentModel.id.is_(None),
+                        PaymentModel.status == "PENDING",
+                    )
+                )
+            else:
+                query = query.filter(PaymentModel.status == payment_status.upper())
+        if date_from:
+            query = query.filter(
+                OrderModel.data_pedido >= datetime.combine(date_from, datetime.min.time())
+            )
+        if date_to:
+            query = query.filter(
+                OrderModel.data_pedido
+                <= datetime.combine(date_to, datetime.max.time())
+            )
+        if search:
+            term = search.strip()
+            if term:
+                like = f"%{term}%"
+                filters = [
+                    OrderModel.customer_name.ilike(like),
+                    OrderModel.customer_email.ilike(like),
+                    OrderModel.customer_cpf.ilike(like),
+                    OrderModel.customer_phone.ilike(like),
+                ]
+                if term.isdigit():
+                    filters.append(OrderModel.id == int(term))
+                query = query.filter(or_(*filters))
+        return query
+
+    def list_admin_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        status: str | None = None,
+        shipping_method: str | None = None,
+        payment_status: str | None = None,
+        payment_method: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        search: str | None = None,
+        sort: str = "desc",
+    ) -> dict:
+        page = max(page, 1)
+        page_size = min(max(page_size, 1), 100)
+
+        base_query = self.db.query(OrderModel)
+        base_query = self._apply_admin_filters(
+            base_query,
+            status=status,
+            shipping_method=shipping_method,
+            payment_status=payment_status,
+            payment_method=payment_method,
+            date_from=date_from,
+            date_to=date_to,
+            search=search,
+        )
+
+        total = base_query.with_entities(func.count(OrderModel.id)).scalar() or 0
+        total_pages = ceil(total / page_size) if total else 0
+
+        order_clause = (
+            OrderModel.data_pedido.asc()
+            if sort == "asc"
+            else OrderModel.data_pedido.desc()
+        )
+
+        models = (
+            base_query.options(
+                joinedload(OrderModel.itens),
+                joinedload(OrderModel.pagamento),
+            )
+            .order_by(order_clause)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+        return {
+            "items": [
+                {
+                    "order": self._to_entity(model),
+                    "payment_status": (
+                        model.pagamento.status if model.pagamento else None
+                    ),
+                }
+                for model in models
+            ],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        }
+
+    def admin_summary(
+        self,
+        *,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> dict:
+        query = self.db.query(OrderModel.status, func.count(OrderModel.id))
+        if date_from:
+            query = query.filter(
+                OrderModel.data_pedido >= datetime.combine(date_from, datetime.min.time())
+            )
+        if date_to:
+            query = query.filter(
+                OrderModel.data_pedido
+                <= datetime.combine(date_to, datetime.max.time())
+            )
+        rows = query.group_by(OrderModel.status).all()
+        counts = {status: count for status, count in rows}
+
+        total = sum(counts.values())
+        pending_payment = counts.get(OrderStatus.PENDING_PAYMENT.value, 0)
+        preparing = counts.get(OrderStatus.PREPARING.value, 0) + counts.get(
+            OrderStatus.PAID.value, 0
+        )
+        in_transit = counts.get(OrderStatus.SHIPPED.value, 0) + counts.get(
+            OrderStatus.READY_FOR_PICKUP.value, 0
+        )
+        delivered = counts.get(OrderStatus.DELIVERED.value, 0)
+        canceled = counts.get(OrderStatus.CANCELED.value, 0)
+
+        return {
+            "total": total,
+            "pending_payment": pending_payment,
+            "preparing": preparing,
+            "shipped_or_ready": in_transit,
+            "delivered": delivered,
+            "canceled": canceled,
+        }
 
     def update(self, order_id: int, data: dict) -> OrderEntity | None:
         model = self._load_order(order_id)
@@ -173,11 +354,31 @@ class OrderRepository:
         for key, value in data.items():
             if hasattr(model, key):
                 setattr(model, key, value)
+        if "updated_at" not in data:
+            model.updated_at = datetime.utcnow()
         self.db.commit()
         return self._to_entity(self._load_order(order_id))
 
-    def update_status(self, order_id: int, status: str) -> OrderEntity | None:
-        return self.update(order_id, {"status": status})
+    def update_status(
+        self,
+        order_id: int,
+        status: str,
+        *,
+        commit: bool = True,
+    ) -> OrderEntity | None:
+        model = self._load_order(order_id)
+        if not model:
+            return None
+        model.status = status
+        model.updated_at = datetime.utcnow()
+        if commit:
+            self.db.commit()
+            return self._to_entity(self._load_order(order_id))
+        self.db.flush()
+        return self._to_entity(model)
+
+    def update_admin_notes(self, order_id: int, notes: str | None) -> OrderEntity | None:
+        return self.update(order_id, {"admin_notes": notes, "updated_at": datetime.utcnow()})
 
     def deactivate(self, order_id: int) -> OrderEntity | None:
         return self.update(order_id, {"ativo": False})
@@ -216,3 +417,13 @@ class OrderRepository:
         self.db.delete(item_model)
         self.db.commit()
         return self._to_entity(self._load_order(order_id))
+
+    def get_payment_status(self, order_id: int) -> str | None:
+        payment = (
+            self.db.query(PaymentModel)
+            .filter(PaymentModel.order_id == order_id)
+            .first()
+        )
+        if not payment:
+            return None
+        return payment.status

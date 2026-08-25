@@ -26,7 +26,15 @@ from src.schemas.coupon_schema import CouponApplyResponse, CouponListResponse, C
 from src.schemas.order_item_schema import OrderItemListResponse, OrderItemResponse
 from src.schemas.order_schema import OrderItemResponse as NestedOrderItemResponse
 from src.schemas.order_schema import OrderListResponse, OrderResponse
+from src.schemas.admin_order_schema import (
+    AdminOrderDetailResponse,
+    AdminOrderListItem,
+    OrderStatusHistoryResponse,
+)
+from src.schemas.order_schema import CustomerOrderTimelineItem
 from src.schemas.payment_schema import PaymentListResponse, PaymentResponse
+from src.entities.order_status_history import OrderStatusHistoryEntity
+from src.utils.order_status_labels import to_customer_timeline
 from src.schemas.product_schema import (
     ProductAvailabilityResponse,
     ProductListResponse,
@@ -216,7 +224,12 @@ def to_order_item_list_response(item: OrderItemEntity) -> OrderItemListResponse:
     )
 
 
-def to_order_response(order: OrderEntity) -> OrderResponse:
+def to_order_response(
+    order: OrderEntity,
+    *,
+    timeline: list[OrderStatusHistoryEntity] | None = None,
+) -> OrderResponse:
+    customer_timeline = to_customer_timeline(timeline or [])
     return OrderResponse(
         id=order.id,
         client_id=order.client_id,
@@ -239,10 +252,91 @@ def to_order_response(order: OrderEntity) -> OrderResponse:
         subtotal=order.subtotal,
         frete=order.frete,
         data_pedido=order.data_pedido,
+        updated_at=order.updated_at,
         valor_total=order.valor_total,
         status=_enum_value(order.status),
         ativo=order.ativo,
         itens=[to_nested_order_item_response(item) for item in order.itens if item.ativo],
+        timeline=[CustomerOrderTimelineItem(**item) for item in customer_timeline],
+    )
+
+
+def to_order_status_history_response(
+    entry: OrderStatusHistoryEntity,
+) -> OrderStatusHistoryResponse:
+    return OrderStatusHistoryResponse(
+        id=entry.id,
+        order_id=entry.order_id,
+        previous_status=entry.previous_status,
+        new_status=entry.new_status,
+        changed_by_user_id=entry.changed_by_user_id,
+        changed_by_name=entry.changed_by_name,
+        note=entry.note,
+        created_at=entry.created_at,
+    )
+
+
+def to_admin_order_list_item(
+    order: OrderEntity,
+    payment_status: str | None = None,
+) -> AdminOrderListItem:
+    item_count = sum(item.quantidade for item in order.itens if item.ativo)
+    return AdminOrderListItem(
+        id=order.id,
+        data_pedido=order.data_pedido,
+        updated_at=order.updated_at,
+        customer_name=order.customer_name,
+        customer_email=order.customer_email,
+        customer_phone=order.customer_phone,
+        item_count=item_count,
+        valor_total=order.valor_total,
+        shipping_method=order.shipping_method,
+        payment_method=order.payment_method,
+        payment_status=payment_status,
+        status=_enum_value(order.status),
+    )
+
+
+def to_admin_order_detail_response(
+    order: OrderEntity,
+    history: list[OrderStatusHistoryEntity],
+    payment_status: str | None = None,
+) -> AdminOrderDetailResponse:
+    return AdminOrderDetailResponse(
+        id=order.id,
+        client_id=order.client_id,
+        customer_name=order.customer_name,
+        customer_email=order.customer_email,
+        customer_phone=order.customer_phone,
+        customer_cpf=order.customer_cpf,
+        shipping_cep=order.shipping_cep,
+        shipping_street=order.shipping_street,
+        shipping_number=order.shipping_number,
+        shipping_complement=order.shipping_complement,
+        shipping_neighborhood=order.shipping_neighborhood,
+        shipping_city=order.shipping_city,
+        shipping_state=order.shipping_state,
+        shipping_method=order.shipping_method,
+        payment_method=order.payment_method,
+        payment_status=payment_status,
+        pagamento_id=order.pagamento_id,
+        cupom_id=order.cupom_id,
+        subtotal=order.subtotal,
+        frete=order.frete,
+        desconto_cupom=order.desconto_cupom,
+        valor_total=order.valor_total,
+        data_pedido=order.data_pedido,
+        updated_at=order.updated_at,
+        status=_enum_value(order.status),
+        ativo=order.ativo,
+        admin_notes=order.admin_notes,
+        allowed_transitions=[s.value for s in order.allowed_transitions()],
+        itens=[
+            to_nested_order_item_response(item)
+            for item in order.itens
+            if item.ativo
+        ],
+        status_history=[to_order_status_history_response(item) for item in history],
     )
 
 

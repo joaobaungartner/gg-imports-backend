@@ -1,6 +1,9 @@
-from src.entities.order import OrderEntity
+from src.entities.order import OrderEntity, OrderStatus
 from src.repositories.client_repository import ClientRepository
 from src.repositories.order_repository import OrderRepository
+from src.repositories.order_status_history_repository import (
+    OrderStatusHistoryRepository,
+)
 from src.use_cases.address.validate_address_for_order import (
     ValidateAddressForOrderUseCase,
 )
@@ -40,11 +43,26 @@ class ConfirmOrderUseCase:
 
         order.confirmar_pedido()
 
-        # TODO: integrar ProductRepository para baixa de estoque
+        previous = OrderStatus.PENDING_PAYMENT.value
+        history_repo = OrderStatusHistoryRepository(self.order_repository.db)
+        try:
+            self.order_repository.update_status(
+                order_id, order.status.value, commit=False
+            )
+            history_repo.create(
+                order_id=order_id,
+                previous_status=previous,
+                new_status=order.status.value,
+                changed_by_user_id=None,
+                note=None,
+                commit=False,
+            )
+            self.order_repository.db.commit()
+        except Exception:
+            self.order_repository.db.rollback()
+            raise
 
-        updated_order = self.order_repository.update_status(
-            order_id, order.status.value
-        )
+        updated_order = self.order_repository.get_by_id(order_id)
         if not updated_order:
             raise ValueError("Pedido não encontrado")
 

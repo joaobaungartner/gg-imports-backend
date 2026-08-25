@@ -5,22 +5,20 @@ from src.repositories.order_status_history_repository import (
 )
 
 
-class UpdateOrderStatusUseCase:
+class UpdateAdminOrderStatusUseCase:
     def __init__(
         self,
         order_repository: OrderRepository,
-        history_repository: OrderStatusHistoryRepository | None = None,
+        history_repository: OrderStatusHistoryRepository,
     ):
         self.order_repository = order_repository
-        self.history_repository = history_repository or OrderStatusHistoryRepository(
-            order_repository.db
-        )
+        self.history_repository = history_repository
 
     def execute(
         self,
         order_id: int,
         novo_status: str,
-        admin_id: int | None = None,
+        admin_user_id: int,
         note: str | None = None,
         force: bool = False,
     ) -> OrderEntity:
@@ -54,7 +52,7 @@ class UpdateOrderStatusUseCase:
                 order_id=order_id,
                 previous_status=previous,
                 new_status=order.status.value,
-                changed_by_user_id=admin_id,
+                changed_by_user_id=admin_user_id,
                 note=note,
                 commit=False,
             )
@@ -63,8 +61,7 @@ class UpdateOrderStatusUseCase:
             self.order_repository.db.rollback()
             raise
 
-        updated_order = self.order_repository.get_by_id(order_id)
-        if not updated_order:
+        updated = self.order_repository.get_by_id(order_id)
+        if not updated:
             raise ValueError("Pedido não encontrado")
-
-        return updated_order
+        return updated
