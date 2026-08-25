@@ -71,11 +71,7 @@ def create_order(
         items = [
             {
                 "product_id": item.product_id,
-                "name": item.name,
-                "image_url": item.image_url,
-                "size": item.size,
                 "quantity": item.quantity,
-                "unit_price": item.unit_price,
             }
             for item in payload.items
         ]
@@ -190,6 +186,7 @@ def update_order_status(
         use_case = UpdateOrderStatusUseCase(
             OrderRepository(db),
             OrderStatusHistoryRepository(db),
+            ProductRepository(db),
         )
         order = use_case.execute(
             order_id,
@@ -214,6 +211,7 @@ def cancel_order(
         use_case = CancelOrderUseCase(
             OrderRepository(db),
             OrderStatusHistoryRepository(db),
+            ProductRepository(db),
         )
         order = use_case.execute(order_id, changed_by_user_id=current_user.id)
         history = OrderStatusHistoryRepository(db).list_by_order_id(order_id)

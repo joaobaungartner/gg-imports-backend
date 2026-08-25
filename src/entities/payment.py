@@ -86,7 +86,9 @@ class PaymentEntity:
 
     def confirmar_pagamento(self, codigo_transacao: str) -> None:
         if self.status == PaymentStatus.PAID:
-            raise ValueError("Pagamento já confirmado")
+            if self.codigo_transacao == codigo_transacao:
+                return
+            raise ValueError("Pagamento já confirmado com outra transação")
         if not codigo_transacao:
             raise ValueError("Código de transação é obrigatório")
 

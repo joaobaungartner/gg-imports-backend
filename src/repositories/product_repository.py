@@ -174,6 +174,38 @@ class ProductRepository:
         product.reduzir_estoque(quantidade)
         return self.update_stock(product_id, product.estoque)
 
+    def reserve_stock(self, product_id: int, quantidade: int) -> None:
+        if quantidade <= 0:
+            raise ValueError("Quantidade inválida")
+        updated = (
+            self.db.query(ProductModel)
+            .filter(
+                ProductModel.id == product_id,
+                ProductModel.ativo.is_(True),
+                ProductModel.estoque >= quantidade,
+            )
+            .update(
+                {ProductModel.estoque: ProductModel.estoque - quantidade},
+                synchronize_session=False,
+            )
+        )
+        if updated != 1:
+            raise ValueError("Estoque insuficiente")
+
+    def release_stock(self, product_id: int, quantidade: int) -> None:
+        if quantidade <= 0:
+            raise ValueError("Quantidade inválida")
+        updated = (
+            self.db.query(ProductModel)
+            .filter(ProductModel.id == product_id)
+            .update(
+                {ProductModel.estoque: ProductModel.estoque + quantidade},
+                synchronize_session=False,
+            )
+        )
+        if updated != 1:
+            raise ValueError("Produto não encontrado")
+
     def activate(self, product_id: int) -> ProductEntity | None:
         return self.update(product_id, {"ativo": True})
 

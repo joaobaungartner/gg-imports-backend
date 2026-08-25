@@ -40,6 +40,8 @@ class OrderModel(Base):
     valor_total = Column(Numeric(10, 2), nullable=False, default=0)
     desconto_cupom = Column(Numeric(10, 2), nullable=False, default=0)
     status = Column(String(30), default="PENDING_PAYMENT", nullable=False, index=True)
+    estoque_reservado = Column(Boolean, default=False, nullable=False, index=True)
+    reserva_expira_em = Column(DateTime, nullable=True, index=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
     client = relationship("ClientModel", backref="orders")

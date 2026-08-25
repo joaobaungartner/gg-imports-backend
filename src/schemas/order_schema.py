@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class ShippingAddressCreate(BaseModel):
@@ -15,12 +15,10 @@ class ShippingAddressCreate(BaseModel):
 
 
 class CheckoutOrderItemCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     product_id: int = Field(..., gt=0)
-    name: str = Field(..., min_length=1, max_length=255)
-    image_url: str | None = None
-    size: str = Field(..., min_length=1, max_length=20)
     quantity: int = Field(..., gt=0)
-    unit_price: Decimal = Field(..., ge=0)
 
 
 class OrderCreate(BaseModel):

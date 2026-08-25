@@ -7,6 +7,7 @@ from src.database.database import get_db
 from src.entities.user import UserEntity
 from src.middlewares.auth import get_current_admin
 from src.repositories.order_repository import OrderRepository
+from src.repositories.product_repository import ProductRepository
 from src.repositories.order_status_history_repository import (
     OrderStatusHistoryRepository,
 )
@@ -25,6 +26,7 @@ from src.schemas.admin_order_schema import (
     OrderStatusHistoryResponse,
 )
 from src.use_cases.order.get_admin_order_by_id import GetAdminOrderByIdUseCase
+from src.use_cases.order.expire_stock_reservations import ExpireStockReservationsUseCase
 from src.use_cases.order.get_admin_orders_summary import GetAdminOrdersSummaryUseCase
 from src.use_cases.order.get_order_status_history import GetOrderStatusHistoryUseCase
 from src.use_cases.order.list_admin_orders import ListAdminOrdersUseCase
@@ -32,6 +34,22 @@ from src.use_cases.order.update_admin_order_notes import UpdateAdminOrderNotesUs
 from src.use_cases.order.update_admin_order_status import UpdateAdminOrderStatusUseCase
 
 router = APIRouter(prefix="/admin/orders", tags=["Admin Orders"])
+
+
+@router.post("/expire-reservations")
+def expire_stock_reservations(
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    def _execute():
+        expired_ids = ExpireStockReservationsUseCase(
+            OrderRepository(db),
+            ProductRepository(db),
+            OrderStatusHistoryRepository(db),
+        ).execute()
+        return {"expired_order_ids": expired_ids, "count": len(expired_ids)}
+
+    return run_use_case(_execute)
 
 
 @router.get("/summary", response_model=AdminOrderSummaryResponse)
@@ -120,6 +138,7 @@ def update_admin_order_status(
         use_case = UpdateAdminOrderStatusUseCase(
             OrderRepository(db),
             OrderStatusHistoryRepository(db),
+            ProductRepository(db),
         )
         use_case.execute(
             order_id=order_id,

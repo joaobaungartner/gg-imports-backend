@@ -3,6 +3,8 @@ from src.repositories.order_repository import OrderRepository
 from src.repositories.order_status_history_repository import (
     OrderStatusHistoryRepository,
 )
+from src.repositories.product_repository import ProductRepository
+from src.use_cases.order.cancel_order import CancelOrderUseCase
 
 
 class UpdateOrderStatusUseCase:
@@ -10,9 +12,13 @@ class UpdateOrderStatusUseCase:
         self,
         order_repository: OrderRepository,
         history_repository: OrderStatusHistoryRepository | None = None,
+        product_repository: ProductRepository | None = None,
     ):
         self.order_repository = order_repository
         self.history_repository = history_repository or OrderStatusHistoryRepository(
+            order_repository.db
+        )
+        self.product_repository = product_repository or ProductRepository(
             order_repository.db
         )
 
@@ -35,6 +41,16 @@ class UpdateOrderStatusUseCase:
 
         if status == order.status:
             raise ValueError("O pedido já está neste status")
+
+        if status == OrderStatus.CANCELED:
+            return CancelOrderUseCase(
+                self.order_repository,
+                self.history_repository,
+                self.product_repository,
+            ).execute(order_id, changed_by_user_id=admin_id)
+
+        if order.status == OrderStatus.CANCELED:
+            raise ValueError("Pedido cancelado não pode ser reativado")
 
         needs_force = order.status in (OrderStatus.DELIVERED, OrderStatus.CANCELED)
         if needs_force and not force:

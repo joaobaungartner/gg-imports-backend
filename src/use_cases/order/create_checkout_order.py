@@ -1,7 +1,9 @@
 from decimal import Decimal
+from datetime import datetime, timedelta
 
 from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
+from src.entities.product import ProductEntity
 from src.repositories.client_repository import ClientRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
@@ -12,6 +14,7 @@ from src.use_cases.shipping.calculate_shipping import CalculateShippingUseCase
 
 
 class CreateCheckoutOrderUseCase:
+    PIX_RESERVATION_MINUTES = 30
     def __init__(
         self,
         order_repository: OrderRepository,
@@ -31,19 +34,30 @@ class CreateCheckoutOrderUseCase:
     def _normalize_cep(cep: str) -> str:
         return cep.replace("-", "").strip()
 
-    def _validate_item(self, item_data: dict) -> None:
-        product_id = item_data["product_id"]
-        quantity = item_data["quantity"]
-
+    def _get_available_product(
+        self, product_id: int, quantity: int
+    ) -> ProductEntity:
         product = self.product_repository.get_by_id(product_id)
         if not product:
             raise ValueError("Produto não encontrado")
         if not product.ativo:
-            raise ValueError(f"Produto indisponível: {item_data['name']}")
+            raise ValueError(f"Produto indisponível: {product.nome}")
 
         availability = self._check_availability.execute(product_id, quantity)
         if not availability.disponivel:
-            raise ValueError(f"Estoque insuficiente para {item_data['name']}")
+            raise ValueError(f"Estoque insuficiente para {product.nome}")
+        return product
+
+    @staticmethod
+    def _consolidate_items(items: list[dict]) -> dict[int, int]:
+        quantities_by_product: dict[int, int] = {}
+        for item in items:
+            product_id = item["product_id"]
+            quantity = item["quantity"]
+            quantities_by_product[product_id] = (
+                quantities_by_product.get(product_id, 0) + quantity
+            )
+        return quantities_by_product
 
     def _resolve_frete(
         self,
@@ -82,8 +96,27 @@ class CreateCheckoutOrderUseCase:
         if not items:
             raise ValueError("Pedido deve conter ao menos um item")
 
-        for item_data in items:
-            self._validate_item(item_data)
+        # Recolhe reservas PIX vencidas antes de disputar o estoque. O endpoint
+        # administrativo equivalente também pode ser executado periodicamente.
+        if hasattr(self.order_repository, "list_expired_reservations"):
+            from src.repositories.order_status_history_repository import (
+                OrderStatusHistoryRepository,
+            )
+            from src.use_cases.order.expire_stock_reservations import (
+                ExpireStockReservationsUseCase,
+            )
+
+            ExpireStockReservationsUseCase(
+                self.order_repository,
+                self.product_repository,
+                OrderStatusHistoryRepository(self.order_repository.db),
+            ).execute()
+
+        quantities_by_product = self._consolidate_items(items)
+        products = {
+            product_id: self._get_available_product(product_id, quantity)
+            for product_id, quantity in quantities_by_product.items()
+        }
 
         if not self.client_repository:
             raise ValueError("Cliente não encontrado")
@@ -94,7 +127,7 @@ class CreateCheckoutOrderUseCase:
 
         normalized_cep = self._normalize_cep(shipping_address["cep"])
         shipping_state = shipping_address["state"].strip().upper()
-        item_count = sum(item["quantity"] for item in items)
+        item_count = sum(quantities_by_product.values())
         frete_informado = frete if frete is not None else Decimal("0")
         frete_calculado = self._resolve_frete(
             normalized_cep,
@@ -122,20 +155,34 @@ class CreateCheckoutOrderUseCase:
             shipping_method=shipping_method,
             payment_method=payment_method.upper(),
             status=OrderStatus.PENDING_PAYMENT,
+            estoque_reservado=True,
+            reserva_expira_em=(
+                datetime.utcnow() + timedelta(minutes=self.PIX_RESERVATION_MINUTES)
+                if payment_method.upper() == "PIX"
+                else None
+            ),
             frete=frete_calculado,
         )
 
-        for item_data in items:
-            unit_price = Decimal(str(item_data["unit_price"]))
+        for product_id, quantity in quantities_by_product.items():
+            product = products[product_id]
             order_item = OrderItemEntity(
-                product_id=item_data["product_id"],
-                quantidade=item_data["quantity"],
-                preco_unitario=unit_price,
-                nome_produto=item_data["name"],
-                imagem_url=item_data.get("image_url"),
-                tamanho=item_data["size"],
+                product_id=product.id,
+                quantidade=quantity,
+                preco_unitario=product.preco,
+                nome_produto=product.nome,
+                imagem_url=product.imagem_url,
+                tamanho=product.tamanho,
             )
             order.adicionar_item(order_item)
 
         order.calcular_total()
-        return self.order_repository.create(order)
+        try:
+            for product_id, quantity in quantities_by_product.items():
+                self.product_repository.reserve_stock(product_id, quantity)
+            created = self.order_repository.create(order, commit=False)
+            self.order_repository.db.commit()
+            return self.order_repository.get_by_id(created.id) or created
+        except Exception:
+            self.order_repository.db.rollback()
+            raise

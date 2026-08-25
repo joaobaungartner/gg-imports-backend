@@ -70,6 +70,8 @@ class OrderRepository:
             frete=Decimal(str(model.frete)),
             valor_total=Decimal(str(model.valor_total)),
             status=OrderStatus(model.status),
+            estoque_reservado=model.estoque_reservado,
+            reserva_expira_em=model.reserva_expira_em,
             pagamento_id=model.pagamento.id if model.pagamento else None,
             cupom_id=model.cupom_id,
             desconto_cupom=Decimal(str(model.desconto_cupom)),
@@ -103,6 +105,8 @@ class OrderRepository:
             "valor_total": entity.valor_total,
             "desconto_cupom": entity.desconto_cupom,
             "status": entity.status.value,
+            "estoque_reservado": entity.estoque_reservado,
+            "reserva_expira_em": entity.reserva_expira_em,
             "cupom_id": entity.cupom_id,
             "ativo": entity.ativo,
         }
@@ -121,7 +125,7 @@ class OrderRepository:
             .first()
         )
 
-    def create(self, order: OrderEntity) -> OrderEntity:
+    def create(self, order: OrderEntity, *, commit: bool = True) -> OrderEntity:
         model = self._to_model(order)
         self.db.add(model)
         self.db.flush()
@@ -143,8 +147,34 @@ class OrderRepository:
             )
         )
 
-        self.db.commit()
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         return self._to_entity(self._load_order(model.id))
+
+    def get_by_id_for_update(self, order_id: int) -> OrderEntity | None:
+        model = (
+            self.db.query(OrderModel)
+            .options(joinedload(OrderModel.itens), joinedload(OrderModel.pagamento))
+            .filter(OrderModel.id == order_id)
+            .with_for_update()
+            .first()
+        )
+        return self._to_entity(model) if model else None
+
+    def list_expired_reservations(self, now: datetime) -> list[int]:
+        rows = (
+            self.db.query(OrderModel.id)
+            .filter(
+                OrderModel.status == OrderStatus.PENDING_PAYMENT.value,
+                OrderModel.estoque_reservado.is_(True),
+                OrderModel.reserva_expira_em.isnot(None),
+                OrderModel.reserva_expira_em <= now,
+            )
+            .all()
+        )
+        return [row.id for row in rows]
 
     def get_by_id(self, order_id: int) -> OrderEntity | None:
         model = self._load_order(order_id)
@@ -376,6 +406,13 @@ class OrderRepository:
             return self._to_entity(self._load_order(order_id))
         self.db.flush()
         return self._to_entity(model)
+
+    def release_reservation(self, order_id: int) -> None:
+        model = self.db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if model:
+            model.estoque_reservado = False
+            model.reserva_expira_em = None
+            self.db.flush()
 
     def update_admin_notes(self, order_id: int, notes: str | None) -> OrderEntity | None:
         return self.update(order_id, {"admin_notes": notes, "updated_at": datetime.utcnow()})

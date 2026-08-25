@@ -59,6 +59,8 @@ class OrderEntity:
     frete: Decimal = field(default_factory=lambda: Decimal("0"))
     valor_total: Decimal = field(default_factory=lambda: Decimal("0"))
     status: OrderStatus = OrderStatus.PENDING_PAYMENT
+    estoque_reservado: bool = False
+    reserva_expira_em: datetime | None = None
     pagamento_id: int | None = None
     cupom_id: int | None = None
     desconto_cupom: Decimal = field(default_factory=lambda: Decimal("0"))
