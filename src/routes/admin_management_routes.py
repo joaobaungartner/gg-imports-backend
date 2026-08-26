@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -26,8 +26,15 @@ SALE_STATUSES = ("PAID", "PROCESSING", "SHIPPED", "DELIVERED")
 
 
 class StockAdjustment(BaseModel):
-    quantity_delta: int = Field(..., ne=0)
+    quantity_delta: int
     reason: str = Field(..., min_length=3, max_length=500)
+
+    @field_validator("quantity_delta")
+    @classmethod
+    def non_zero_delta(cls, value: int) -> int:
+        if value == 0:
+            raise ValueError("O ajuste não pode ser zero")
+        return value
 
 
 class ClientStatusUpdate(BaseModel):

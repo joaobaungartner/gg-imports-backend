@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     WHATSAPP_ACCESS_TOKEN: str | None = None
     WHATSAPP_PHONE_NUMBER_ID: str | None = None
     WHATSAPP_API_VERSION: str = "v23.0"
+    ENVIRONMENT: str = "development"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN: int = 10
+    RATE_LIMIT_REGISTER: int = 5
+    RATE_LIMIT_TRACK_ORDER: int = 30
+    LOG_LEVEL: str = "INFO"
 
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), extra="ignore")
 
