@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     data_cadastro: datetime
     role: str
     ativo: bool
+    email_verificado: bool = False
 
     class Config:
         from_attributes = True

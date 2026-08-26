@@ -16,6 +16,10 @@ from src.models.product_collection_model import (
 from src.models.product_model import ProductModel
 from src.models.site_content_model import SiteContentModel
 from src.models.user_model import UserModel
+from src.models.notification_model import NotificationModel
+from src.models.post_sale_request_model import PostSaleRequestModel
+from src.models.stock_movement_model import StockMovementModel
+from src.models.admin_audit_log_model import AdminAuditLogModel
 
 __all__ = [
     "UserModel",
@@ -34,4 +38,8 @@ __all__ = [
     "OrderItemModel",
     "OrderStatusHistoryModel",
     "PaymentModel",
+    "NotificationModel",
+    "PostSaleRequestModel",
+    "StockMovementModel",
+    "AdminAuditLogModel",
 ]

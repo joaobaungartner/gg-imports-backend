@@ -61,6 +61,8 @@ class OrderEntity:
     status: OrderStatus = OrderStatus.PENDING_PAYMENT
     estoque_reservado: bool = False
     reserva_expira_em: datetime | None = None
+    codigo_rastreio: str | None = None
+    url_rastreio: str | None = None
     pagamento_id: int | None = None
     cupom_id: int | None = None
     desconto_cupom: Decimal = field(default_factory=lambda: Decimal("0"))

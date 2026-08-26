@@ -20,6 +20,7 @@ class UserRepository:
             data_cadastro=model.data_cadastro,
             role=UserRole(model.role),
             ativo=model.ativo,
+            email_verificado=model.email_verificado,
         )
 
     def _to_model(self, entity: UserEntity) -> UserModel:
@@ -31,6 +32,7 @@ class UserRepository:
             "data_cadastro": entity.data_cadastro or datetime.utcnow(),
             "role": entity.role.value,
             "ativo": entity.ativo,
+            "email_verificado": entity.email_verificado,
         }
         if entity.id is not None:
             kwargs["id"] = entity.id

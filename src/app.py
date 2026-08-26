@@ -27,6 +27,7 @@ from src.routes.order_routes import router as order_router
 from src.routes.payment_routes import router as payment_router
 from src.routes.product_routes import router as product_router
 from src.routes.user_routes import router as user_router
+from src.routes.post_sale_routes import router as post_sale_router, admin_router as admin_post_sale_router
 
 app = FastAPI(
     title="GG Imports API",
@@ -63,6 +64,8 @@ app.include_router(order_item_router)
 app.include_router(address_router)
 app.include_router(coupon_router)
 app.include_router(payment_router)
+app.include_router(post_sale_router)
+app.include_router(admin_post_sale_router)
 
 
 @app.get("/")

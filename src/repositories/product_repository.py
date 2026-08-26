@@ -24,6 +24,11 @@ class ProductRepository:
             tamanho=model.tamanho,
             clube=model.clube,
             tipo=model.tipo,
+            temporada=model.temporada,
+            versao=model.versao,
+            genero=model.genero,
+            fornecedor=model.fornecedor,
+            sku=model.sku,
             estoque=model.estoque,
             imagem_url=model.imagem_url,
             ativo=model.ativo,
@@ -38,6 +43,11 @@ class ProductRepository:
             "tamanho": self._normalize_text(entity.tamanho),
             "clube": self._normalize_text(entity.clube),
             "tipo": self._normalize_text(entity.tipo),
+            "temporada": entity.temporada,
+            "versao": entity.versao,
+            "genero": entity.genero,
+            "fornecedor": entity.fornecedor,
+            "sku": entity.sku,
             "estoque": entity.estoque,
             "imagem_url": entity.imagem_url,
             "ativo": entity.ativo,
@@ -139,7 +149,7 @@ class ProductRepository:
         )
         if not model:
             return None
-        for key in ("nome", "tamanho", "clube", "tipo"):
+        for key in ("nome", "tamanho", "clube", "tipo", "temporada", "versao", "genero", "fornecedor", "sku"):
             if key in data:
                 data[key] = self._normalize_text(data[key])
         if "descricao" in data and data["descricao"] is not None:

@@ -5,8 +5,11 @@ from src.entities.order import OrderEntity, OrderStatus
 from src.entities.order_item import OrderItemEntity
 from src.entities.product import ProductEntity
 from src.repositories.client_repository import ClientRepository
+from src.repositories.coupon_repository import CouponRepository
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
+from src.repositories.notification_repository import NotificationRepository
+from src.services.notification_service import NotificationService
 from src.use_cases.product.check_product_availability import (
     CheckProductAvailabilityUseCase,
 )
@@ -21,6 +24,8 @@ class CreateCheckoutOrderUseCase:
         product_repository: ProductRepository,
         client_repository: ClientRepository | None = None,
         calculate_shipping_use_case: CalculateShippingUseCase | None = None,
+        coupon_repository: CouponRepository | None = None,
+        notification_repository: NotificationRepository | None = None,
     ):
         self.order_repository = order_repository
         self.product_repository = product_repository
@@ -29,6 +34,8 @@ class CreateCheckoutOrderUseCase:
             product_repository
         )
         self._calculate_shipping = calculate_shipping_use_case or CalculateShippingUseCase()
+        self.coupon_repository = coupon_repository
+        self.notification_repository = notification_repository
 
     @staticmethod
     def _normalize_cep(cep: str) -> str:
@@ -89,6 +96,7 @@ class CreateCheckoutOrderUseCase:
         shipping_method: str = "ENTREGA",
         customer_cpf: str | None = None,
         frete: Decimal | None = None,
+        coupon_code: str | None = None,
     ) -> OrderEntity:
         if not authenticated_user_id:
             raise ValueError("Usuário não autenticado")
@@ -176,11 +184,27 @@ class CreateCheckoutOrderUseCase:
             )
             order.adicionar_item(order_item)
 
+        if coupon_code:
+            if not self.coupon_repository:
+                raise ValueError("Cupom indisponível")
+            coupon = self.coupon_repository.get_by_code(coupon_code.strip().upper())
+            if not coupon:
+                raise ValueError("Cupom não encontrado")
+            discount, _ = coupon.calcular_desconto(order.subtotal)
+            order.aplicar_cupom(coupon.id, discount)
+
         order.calcular_total()
         try:
             for product_id, quantity in quantities_by_product.items():
                 self.product_repository.reserve_stock(product_id, quantity)
             created = self.order_repository.create(order, commit=False)
+            if self.notification_repository:
+                NotificationService(self.notification_repository).email(
+                    "ORDER_CREATED", order.customer_email,
+                    f"Pedido #{created.id} recebido — GG Imports",
+                    f"Recebemos seu pedido #{created.id}. Total: R$ {order.valor_total}.",
+                    commit=False,
+                )
             self.order_repository.db.commit()
             return self.order_repository.get_by_id(created.id) or created
         except Exception:

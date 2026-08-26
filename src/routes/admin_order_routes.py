@@ -21,6 +21,7 @@ from src.schemas.admin_order_schema import (
     AdminOrderDetailResponse,
     AdminOrderListResponse,
     AdminOrderNotesUpdate,
+    AdminOrderTrackingUpdate,
     AdminOrderStatusUpdate,
     AdminOrderSummaryResponse,
     OrderStatusHistoryResponse,
@@ -173,6 +174,37 @@ def update_admin_order_notes(
         )
         order, history, payment_status = detail_use_case.execute(order_id)
         return to_admin_order_detail_response(order, history, payment_status)
+
+    return run_use_case(_execute)
+
+
+@router.patch("/{order_id}/tracking", response_model=AdminOrderDetailResponse)
+def update_order_tracking(
+    order_id: int,
+    payload: AdminOrderTrackingUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    def _execute():
+        repository = OrderRepository(db)
+        order = repository.get_by_id(order_id)
+        if not order:
+            raise ValueError("Pedido não encontrado")
+        repository.update(order_id, {
+            "codigo_rastreio": payload.codigo_rastreio.strip(),
+            "url_rastreio": payload.url_rastreio,
+        })
+        from src.repositories.notification_repository import NotificationRepository
+        from src.services.notification_service import NotificationService
+        if order.customer_email:
+            NotificationService(NotificationRepository(db)).email(
+                "ORDER_SHIPPED", order.customer_email,
+                f"Pedido #{order.id} enviado — GG Imports",
+                f"Código de rastreio: {payload.codigo_rastreio}",
+            )
+        detail = GetAdminOrderByIdUseCase(repository, OrderStatusHistoryRepository(db))
+        refreshed, history, payment_status = detail.execute(order_id)
+        return to_admin_order_detail_response(refreshed, history, payment_status)
 
     return run_use_case(_execute)
 

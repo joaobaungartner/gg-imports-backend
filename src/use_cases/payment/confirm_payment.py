@@ -57,4 +57,13 @@ class ConfirmPaymentUseCase:
                 self.order_repository.db.rollback()
                 raise
 
+            if order.customer_email:
+                from src.repositories.notification_repository import NotificationRepository
+                from src.services.notification_service import NotificationService
+                NotificationService(NotificationRepository(self.order_repository.db)).email(
+                    "PAYMENT_APPROVED", order.customer_email,
+                    f"Pagamento aprovado — pedido #{order.id}",
+                    "Seu pagamento foi aprovado e o pedido seguirá para preparação.",
+                )
+
         return updated_payment

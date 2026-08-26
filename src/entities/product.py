@@ -11,6 +11,11 @@ class ProductEntity:
     tamanho: str
     clube: str
     tipo: str
+    temporada: str | None = None
+    versao: str | None = None
+    genero: str | None = None
+    fornecedor: str | None = None
+    sku: str | None = None
     descricao: str | None = None
     estoque: int = 0
     imagem_url: str | None = None
@@ -56,6 +61,11 @@ class ProductEntity:
         tipo: str | None = None,
         estoque: int | None = None,
         imagem_url: str | None = None,
+        temporada: str | None = None,
+        versao: str | None = None,
+        genero: str | None = None,
+        fornecedor: str | None = None,
+        sku: str | None = None,
         ativo: bool | None = None,
     ) -> None:
         if category_id is not None:
@@ -78,6 +88,9 @@ class ProductEntity:
             self.atualizar_estoque(estoque)
         if imagem_url is not None:
             self.imagem_url = imagem_url.strip() or None
+        for field_name, value in (("temporada", temporada), ("versao", versao), ("genero", genero), ("fornecedor", fornecedor), ("sku", sku)):
+            if value is not None:
+                setattr(self, field_name, value.strip() or None)
         if ativo is not None:
             self.ativo = ativo
         self.validar_produto()

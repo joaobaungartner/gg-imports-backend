@@ -23,6 +23,7 @@ from src.schemas.cart_schema import (
     CartCreate,
     CartItemCreate,
     CartItemUpdate,
+    CartSync,
     CartResponse,
 )
 from src.use_cases.cart.add_item_to_cart import AddItemToCartUseCase
@@ -42,6 +43,27 @@ class CartTotalResponse(BaseModel):
 
 
 router = APIRouter(prefix="/carts", tags=["Carts"])
+
+
+@router.get("/me/current", response_model=CartResponse)
+def get_my_cart(db: Session = Depends(get_db), current_user: UserEntity = Depends(get_current_user)):
+    client = ClientRepository(db).get_by_user_id(current_user.id)
+    if not client:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    cart = GetCartByClientUseCase(ClientRepository(db), CartRepository(db)).execute(client.client_id)
+    return to_cart_response(cart)
+
+
+@router.put("/me/current", response_model=CartResponse)
+def sync_my_cart(payload: CartSync, db: Session = Depends(get_db), current_user: UserEntity = Depends(get_current_user)):
+    client = ClientRepository(db).get_by_user_id(current_user.id)
+    if not client:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    repository = CartRepository(db)
+    cart = GetCartByClientUseCase(ClientRepository(db), repository).execute(client.client_id)
+    return to_cart_response(repository.sync_items(cart.id, [item.model_dump() for item in payload.items]))
 
 
 @router.post("/", response_model=CartResponse, status_code=status.HTTP_201_CREATED)

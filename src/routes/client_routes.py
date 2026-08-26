@@ -104,7 +104,7 @@ def update_client(
     ensure_client_owner_or_admin(client_id, current_user, db)
     def _execute():
         repository = ClientRepository(db)
-        use_case = UpdateClientUseCase(repository)
+        use_case = UpdateClientUseCase(UserRepository(db), repository)
         client = use_case.execute(
             client_id=client_id,
             nome=payload.nome,

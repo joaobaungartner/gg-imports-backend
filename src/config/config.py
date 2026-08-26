@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str | None = None
     S3_REGION: str | None = None
     S3_PUBLIC_BASE_URL: str | None = None
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+    EMAIL_VERIFICATION_EXPIRE_HOURS: int = 24
+    GMAIL_CREDENTIALS_FILE: str | None = None
+    GMAIL_TOKEN_FILE: str | None = None
+    GMAIL_SENDER: str | None = None
+    WHATSAPP_ACCESS_TOKEN: str | None = None
+    WHATSAPP_PHONE_NUMBER_ID: str | None = None
+    WHATSAPP_API_VERSION: str = "v23.0"
 
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), extra="ignore")
 

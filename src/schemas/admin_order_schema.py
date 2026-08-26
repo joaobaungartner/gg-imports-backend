@@ -16,6 +16,11 @@ class AdminOrderNotesUpdate(BaseModel):
     admin_notes: str | None = Field(default=None, max_length=2000)
 
 
+class AdminOrderTrackingUpdate(BaseModel):
+    codigo_rastreio: str = Field(..., min_length=3, max_length=100)
+    url_rastreio: str | None = Field(default=None, max_length=500)
+
+
 class OrderStatusHistoryResponse(BaseModel):
     id: int
     order_id: int
@@ -90,6 +95,8 @@ class AdminOrderDetailResponse(BaseModel):
     status: str
     ativo: bool
     admin_notes: str | None = None
+    codigo_rastreio: str | None = None
+    url_rastreio: str | None = None
     allowed_transitions: list[str] = []
     itens: list[OrderItemResponse]
     status_history: list[OrderStatusHistoryResponse] = []

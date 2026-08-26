@@ -21,6 +21,7 @@ class UserEntity:
     data_cadastro: datetime | None = None
     role: UserRole = UserRole.CLIENTE
     ativo: bool = True
+    email_verificado: bool = False
 
     def __post_init__(self) -> None:
         self._validate()

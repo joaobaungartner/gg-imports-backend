@@ -17,6 +17,15 @@ class CartItemUpdate(BaseModel):
     quantidade: int = Field(..., gt=0)
 
 
+class CartSyncItem(BaseModel):
+    product_id: int = Field(..., gt=0)
+    quantidade: int = Field(..., gt=0)
+
+
+class CartSync(BaseModel):
+    items: list[CartSyncItem]
+
+
 class CartItemResponse(BaseModel):
     id: int
     cart_id: int

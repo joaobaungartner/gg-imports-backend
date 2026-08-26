@@ -30,6 +30,7 @@ class OrderCreate(BaseModel):
     shipping_method: str = Field(default="ENTREGA", max_length=50)
     payment_method: str = Field(..., min_length=2, max_length=20)
     frete: Decimal = Field(default=Decimal("0"), ge=0)
+    coupon_code: str | None = Field(default=None, min_length=1, max_length=50)
     items: list[CheckoutOrderItemCreate] = Field(..., min_length=1)
 
 
@@ -102,6 +103,8 @@ class OrderResponse(BaseModel):
     ativo: bool
     itens: list[OrderItemResponse]
     timeline: list[CustomerOrderTimelineItem] = []
+    codigo_rastreio: str | None = None
+    url_rastreio: str | None = None
 
     class Config:
         from_attributes = True

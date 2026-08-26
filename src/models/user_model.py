@@ -16,3 +16,4 @@ class UserModel(Base):
     data_cadastro = Column(DateTime, default=datetime.utcnow, nullable=False)
     role = Column(String(20), default="CLIENTE", nullable=False)
     ativo = Column(Boolean, default=True, nullable=False)
+    email_verificado = Column(Boolean, default=False, nullable=False)

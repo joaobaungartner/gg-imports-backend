@@ -11,6 +11,11 @@ class ProductCreate(BaseModel):
     tamanho: str = Field(..., min_length=1)
     clube: str = Field(..., min_length=1)
     tipo: str = Field(..., min_length=1)
+    temporada: str | None = None
+    versao: str | None = None
+    genero: str | None = None
+    fornecedor: str | None = None
+    sku: str | None = None
     estoque: int = Field(..., ge=0)
     imagem_url: str | None = None
     ativo: bool | None = True
@@ -24,6 +29,11 @@ class ProductUpdate(BaseModel):
     tamanho: str | None = Field(default=None, min_length=1)
     clube: str | None = Field(default=None, min_length=1)
     tipo: str | None = Field(default=None, min_length=1)
+    temporada: str | None = None
+    versao: str | None = None
+    genero: str | None = None
+    fornecedor: str | None = None
+    sku: str | None = None
     estoque: int | None = Field(default=None, ge=0)
     imagem_url: str | None = None
     ativo: bool | None = None
@@ -61,6 +71,11 @@ class ProductResponse(BaseModel):
     tamanho: str
     clube: str
     tipo: str
+    temporada: str | None = None
+    versao: str | None = None
+    genero: str | None = None
+    fornecedor: str | None = None
+    sku: str | None = None
     estoque: int
     imagem_url: str | None
     ativo: bool
@@ -78,6 +93,11 @@ class ProductListResponse(BaseModel):
     tamanho: str
     clube: str
     tipo: str
+    temporada: str | None = None
+    versao: str | None = None
+    genero: str | None = None
+    fornecedor: str | None = None
+    sku: str | None = None
     estoque: int
     imagem_url: str | None
     ativo: bool

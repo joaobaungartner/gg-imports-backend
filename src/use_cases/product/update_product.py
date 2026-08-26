@@ -25,6 +25,11 @@ class UpdateProductUseCase:
         tamanho: str | None = None,
         clube: str | None = None,
         tipo: str | None = None,
+        temporada: str | None = None,
+        versao: str | None = None,
+        genero: str | None = None,
+        fornecedor: str | None = None,
+        sku: str | None = None,
         estoque: int | None = None,
         imagem_url: str | None = None,
         ativo: bool | None = None,
@@ -49,6 +54,11 @@ class UpdateProductUseCase:
             tamanho=tamanho,
             clube=clube,
             tipo=tipo,
+            temporada=temporada,
+            versao=versao,
+            genero=genero,
+            fornecedor=fornecedor,
+            sku=sku,
             estoque=estoque,
             imagem_url=imagem_url,
             ativo=ativo,
@@ -69,6 +79,9 @@ class UpdateProductUseCase:
             update_data["clube"] = product.clube
         if tipo is not None:
             update_data["tipo"] = product.tipo
+        for field_name, value in (("temporada", temporada), ("versao", versao), ("genero", genero), ("fornecedor", fornecedor), ("sku", sku)):
+            if value is not None:
+                update_data[field_name] = getattr(product, field_name)
         if estoque is not None:
             update_data["estoque"] = product.estoque
         if imagem_url is not None:

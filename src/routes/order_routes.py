@@ -21,6 +21,7 @@ from src.repositories.order_status_history_repository import (
     OrderStatusHistoryRepository,
 )
 from src.repositories.product_repository import ProductRepository
+from src.repositories.notification_repository import NotificationRepository
 from src.routes.mappers import to_order_list_response, to_order_response
 from src.routes.utils import run_use_case
 from src.schemas.order_schema import (
@@ -67,6 +68,8 @@ def create_order(
             OrderRepository(db),
             ProductRepository(db),
             ClientRepository(db),
+            coupon_repository=CouponRepository(db),
+            notification_repository=NotificationRepository(db),
         )
         items = [
             {
@@ -84,6 +87,7 @@ def create_order(
             shipping_method=payload.shipping_method,
             payment_method=payload.payment_method,
             frete=payload.frete,
+            coupon_code=payload.coupon_code,
             items=items,
             authenticated_user_id=current_user.id,
         )

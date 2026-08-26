@@ -72,6 +72,8 @@ class OrderRepository:
             status=OrderStatus(model.status),
             estoque_reservado=model.estoque_reservado,
             reserva_expira_em=model.reserva_expira_em,
+            codigo_rastreio=model.codigo_rastreio,
+            url_rastreio=model.url_rastreio,
             pagamento_id=model.pagamento.id if model.pagamento else None,
             cupom_id=model.cupom_id,
             desconto_cupom=Decimal(str(model.desconto_cupom)),
@@ -107,6 +109,8 @@ class OrderRepository:
             "status": entity.status.value,
             "estoque_reservado": entity.estoque_reservado,
             "reserva_expira_em": entity.reserva_expira_em,
+            "codigo_rastreio": entity.codigo_rastreio,
+            "url_rastreio": entity.url_rastreio,
             "cupom_id": entity.cupom_id,
             "ativo": entity.ativo,
         }

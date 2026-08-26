@@ -7,6 +7,7 @@ from src.entities.cart import CartEntity
 from src.entities.cart_item import CartItemEntity
 from src.models.cart_item_model import CartItemModel
 from src.models.cart_model import CartModel
+from src.models.product_model import ProductModel
 
 
 class CartRepository:
@@ -143,3 +144,31 @@ class CartRepository:
             .first()
             is not None
         )
+
+    def sync_items(self, cart_id: int, items: list[dict]) -> CartEntity:
+        model = self._load_cart(cart_id)
+        if not model:
+            raise ValueError("Carrinho não encontrado")
+        quantities = {}
+        for item in items:
+            quantities[item["product_id"]] = quantities.get(item["product_id"], 0) + item["quantidade"]
+        products = self.db.query(ProductModel).filter(ProductModel.id.in_(quantities)).all() if quantities else []
+        by_id = {product.id: product for product in products}
+        if len(by_id) != len(quantities):
+            raise ValueError("Produto não encontrado")
+        for product_id, quantity in quantities.items():
+            product = by_id[product_id]
+            if not product.ativo or product.estoque < quantity:
+                raise ValueError(f"Estoque insuficiente para {product.nome}")
+        for existing in model.itens:
+            existing.ativo = False
+        for product_id, quantity in quantities.items():
+            existing = next((item for item in model.itens if item.product_id == product_id), None)
+            if existing:
+                existing.quantidade = quantity
+                existing.preco_unitario = by_id[product_id].preco
+                existing.ativo = True
+            else:
+                self.db.add(CartItemModel(cart_id=cart_id, product_id=product_id, quantidade=quantity, preco_unitario=by_id[product_id].preco, ativo=True))
+        self.db.commit()
+        return self._to_entity(self._load_cart(cart_id))

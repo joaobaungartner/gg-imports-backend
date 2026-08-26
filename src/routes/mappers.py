@@ -59,6 +59,7 @@ def to_user_response(user: UserEntity) -> UserResponse:
         data_cadastro=user.data_cadastro,
         role=_enum_value(user.role),
         ativo=user.ativo,
+        email_verificado=user.email_verificado,
     )
 
 
@@ -117,6 +118,11 @@ def to_product_response(product: ProductEntity) -> ProductResponse:
         tamanho=product.tamanho,
         clube=product.clube,
         tipo=product.tipo,
+        temporada=product.temporada,
+        versao=product.versao,
+        genero=product.genero,
+        fornecedor=product.fornecedor,
+        sku=product.sku,
         estoque=product.estoque,
         imagem_url=product.imagem_url,
         ativo=product.ativo,
@@ -133,6 +139,11 @@ def to_product_list_response(product: ProductEntity) -> ProductListResponse:
         tamanho=product.tamanho,
         clube=product.clube,
         tipo=product.tipo,
+        temporada=product.temporada,
+        versao=product.versao,
+        genero=product.genero,
+        fornecedor=product.fornecedor,
+        sku=product.sku,
         estoque=product.estoque,
         imagem_url=product.imagem_url,
         ativo=product.ativo,
@@ -258,6 +269,8 @@ def to_order_response(
         ativo=order.ativo,
         itens=[to_nested_order_item_response(item) for item in order.itens if item.ativo],
         timeline=[CustomerOrderTimelineItem(**item) for item in customer_timeline],
+        codigo_rastreio=order.codigo_rastreio,
+        url_rastreio=order.url_rastreio,
     )
 
 
@@ -330,6 +343,8 @@ def to_admin_order_detail_response(
         status=_enum_value(order.status),
         ativo=order.ativo,
         admin_notes=order.admin_notes,
+        codigo_rastreio=order.codigo_rastreio,
+        url_rastreio=order.url_rastreio,
         allowed_transitions=[s.value for s in order.allowed_transitions()],
         itens=[
             to_nested_order_item_response(item)

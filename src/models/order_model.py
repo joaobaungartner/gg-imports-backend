@@ -42,6 +42,8 @@ class OrderModel(Base):
     status = Column(String(30), default="PENDING_PAYMENT", nullable=False, index=True)
     estoque_reservado = Column(Boolean, default=False, nullable=False, index=True)
     reserva_expira_em = Column(DateTime, nullable=True, index=True)
+    codigo_rastreio = Column(String(100), nullable=True)
+    url_rastreio = Column(String(500), nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
 
     client = relationship("ClientModel", backref="orders")
