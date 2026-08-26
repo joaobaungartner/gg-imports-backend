@@ -7,6 +7,7 @@ from src.middlewares.auth import get_current_admin
 from src.repositories.category_repository import CategoryRepository
 from src.routes.mappers import to_category_list_response, to_category_response
 from src.routes.utils import run_use_case
+from src.routes.admin_management_routes import audit
 from src.schemas.category_schema import (
     CategoryCreate,
     CategoryListResponse,
@@ -35,6 +36,8 @@ def create_category(
         repository = CategoryRepository(db)
         use_case = CreateCategoryUseCase(repository)
         category = use_case.execute(nome=payload.nome, descricao=payload.descricao)
+        audit(db, current_user.id, "CREATE", "category", category.id, {"name": category.nome})
+        db.commit()
         return to_category_response(category)
 
     return run_use_case(_execute)
@@ -90,6 +93,8 @@ def update_category(
             descricao=payload.descricao,
             ativo=payload.ativo,
         )
+        audit(db, current_user.id, "UPDATE", "category", category_id)
+        db.commit()
         return to_category_response(category)
 
     return run_use_case(_execute)
@@ -104,7 +109,10 @@ def activate_category(
     def _execute():
         repository = CategoryRepository(db)
         use_case = ActivateCategoryUseCase(repository)
-        return to_category_response(use_case.execute(category_id))
+        category = use_case.execute(category_id)
+        audit(db, current_user.id, "ACTIVATE", "category", category_id)
+        db.commit()
+        return to_category_response(category)
 
     return run_use_case(_execute)
 
@@ -118,7 +126,10 @@ def deactivate_category(
     def _execute():
         repository = CategoryRepository(db)
         use_case = DeactivateCategoryUseCase(repository)
-        return to_category_response(use_case.execute(category_id))
+        category = use_case.execute(category_id)
+        audit(db, current_user.id, "DEACTIVATE", "category", category_id)
+        db.commit()
+        return to_category_response(category)
 
     return run_use_case(_execute)
 
@@ -135,6 +146,9 @@ def delete_category(
         use_case = DeleteCategoryUseCase(
             CategoryRepository(db), ProductRepository(db)
         )
-        return to_category_response(use_case.execute(category_id))
+        category = use_case.execute(category_id)
+        audit(db, current_user.id, "DELETE", "category", category_id)
+        db.commit()
+        return to_category_response(category)
 
     return run_use_case(_execute)

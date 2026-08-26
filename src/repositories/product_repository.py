@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.entities.product import ProductEntity
 from src.models.product_model import ProductModel
+from src.models.stock_movement_model import StockMovementModel
 
 
 class ProductRepository:
@@ -201,6 +202,12 @@ class ProductRepository:
         )
         if updated != 1:
             raise ValueError("Estoque insuficiente")
+        current = self.db.query(ProductModel.estoque).filter(ProductModel.id == product_id).scalar()
+        self.db.add(StockMovementModel(
+            product_id=product_id, movement_type="RESERVATION", quantity=-quantidade,
+            previous_stock=current + quantidade, new_stock=current,
+            reason="Reserva automática de checkout",
+        ))
 
     def release_stock(self, product_id: int, quantidade: int) -> None:
         if quantidade <= 0:
@@ -215,6 +222,12 @@ class ProductRepository:
         )
         if updated != 1:
             raise ValueError("Produto não encontrado")
+        current = self.db.query(ProductModel.estoque).filter(ProductModel.id == product_id).scalar()
+        self.db.add(StockMovementModel(
+            product_id=product_id, movement_type="RELEASE", quantity=quantidade,
+            previous_stock=current - quantidade, new_stock=current,
+            reason="Reposição automática de reserva",
+        ))
 
     def activate(self, product_id: int) -> ProductEntity | None:
         return self.update(product_id, {"ativo": True})

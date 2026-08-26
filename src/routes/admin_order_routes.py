@@ -17,6 +17,7 @@ from src.routes.mappers import (
     to_order_status_history_response,
 )
 from src.routes.utils import run_use_case
+from src.routes.admin_management_routes import audit
 from src.schemas.admin_order_schema import (
     AdminOrderDetailResponse,
     AdminOrderListResponse,
@@ -194,6 +195,11 @@ def update_order_tracking(
             "codigo_rastreio": payload.codigo_rastreio.strip(),
             "url_rastreio": payload.url_rastreio,
         })
+        audit(db, current_user.id, "TRACKING_UPDATE", "order", order_id, {
+            "tracking_code": payload.codigo_rastreio.strip(),
+            "tracking_url": payload.url_rastreio,
+        })
+        db.commit()
         from src.repositories.notification_repository import NotificationRepository
         from src.services.notification_service import NotificationService
         if order.customer_email:

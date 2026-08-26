@@ -11,6 +11,7 @@ from src.routes.mappers import (
     to_coupon_response,
 )
 from src.routes.utils import run_use_case
+from src.routes.admin_management_routes import audit
 from src.schemas.coupon_schema import (
     CouponApply,
     CouponApplyResponse,
@@ -47,6 +48,8 @@ def create_coupon(
             validade=payload.validade,
             ativo=payload.ativo if payload.ativo is not None else True,
         )
+        audit(db, current_user.id, "CREATE", "coupon", coupon.id, {"code": coupon.codigo})
+        db.commit()
         return to_coupon_response(coupon)
 
     return run_use_case(_execute)
@@ -128,6 +131,8 @@ def update_coupon(
             validade=payload.validade,
             ativo=payload.ativo,
         )
+        audit(db, current_user.id, "UPDATE", "coupon", coupon_id)
+        db.commit()
         return to_coupon_response(coupon)
 
     return run_use_case(_execute)
@@ -141,7 +146,10 @@ def activate_coupon(
 ):
     def _execute():
         use_case = ActivateCouponUseCase(CouponRepository(db))
-        return to_coupon_response(use_case.execute(coupon_id))
+        coupon = use_case.execute(coupon_id)
+        audit(db, current_user.id, "ACTIVATE", "coupon", coupon_id)
+        db.commit()
+        return to_coupon_response(coupon)
 
     return run_use_case(_execute)
 
@@ -154,6 +162,9 @@ def deactivate_coupon(
 ):
     def _execute():
         use_case = DeactivateCouponUseCase(CouponRepository(db))
-        return to_coupon_response(use_case.execute(coupon_id))
+        coupon = use_case.execute(coupon_id)
+        audit(db, current_user.id, "DEACTIVATE", "coupon", coupon_id)
+        db.commit()
+        return to_coupon_response(coupon)
 
     return run_use_case(_execute)

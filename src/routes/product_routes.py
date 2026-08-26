@@ -14,6 +14,7 @@ from src.routes.mappers import (
     to_product_response,
 )
 from src.routes.utils import handle_value_error, run_use_case
+from src.routes.admin_management_routes import audit
 from src.schemas.product_schema import (
     ProductAvailabilityResponse,
     ProductBulkActionResponse,
@@ -278,6 +279,8 @@ def update_product(
             imagem_url=payload.imagem_url,
             ativo=payload.ativo,
         )
+        audit(db, current_user.id, "UPDATE", "product", product_id)
+        db.commit()
         return to_product_response(product)
 
     return run_use_case(_execute)
