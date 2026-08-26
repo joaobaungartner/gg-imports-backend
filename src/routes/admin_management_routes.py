@@ -20,6 +20,9 @@ from src.models.order_model import OrderModel
 from src.models.product_model import ProductModel
 from src.models.stock_movement_model import StockMovementModel
 from src.models.user_model import UserModel
+from src.repositories.category_repository import CategoryRepository
+from src.repositories.coupon_repository import CouponRepository
+from src.routes.mappers import to_category_list_response, to_coupon_list_response
 
 router = APIRouter(prefix="/admin/management", tags=["Admin Management"])
 SALE_STATUSES = ("PAID", "PROCESSING", "SHIPPED", "DELIVERED")
@@ -227,3 +230,19 @@ def audit_log(
              "action": log.action, "resource_type": log.resource_type,
              "resource_id": log.resource_id, "details": json.loads(log.details) if log.details else None,
              "created_at": log.created_at} for log, name in rows]
+
+
+@router.get("/dashboard")
+def admin_dashboard(
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_admin),
+):
+    return {
+        "report": sales_report(db=db, current_user=current_user),
+        "categories": [to_category_list_response(item) for item in CategoryRepository(db).list_all()],
+        "coupons": [to_coupon_list_response(item) for item in CouponRepository(db).list_all()],
+        "low_stock": low_stock(threshold=5, db=db, current_user=current_user),
+        "movements": stock_movements(product_id=None, limit=100, db=db, current_user=current_user),
+        "clients": list_clients(search=None, db=db, current_user=current_user),
+        "audit": audit_log(limit=100, db=db, current_user=current_user),
+    }
