@@ -449,6 +449,16 @@ def to_payment_response(payment: PaymentEntity) -> PaymentResponse:
         codigo_transacao=payment.codigo_transacao,
         data_pagamento=payment.data_pagamento,
         ativo=payment.ativo,
+        gateway=payment.gateway,
+        gateway_status=payment.gateway_status,
+        status_detail=payment.status_detail,
+        payment_method_id=payment.payment_method_id,
+        installments=payment.installments,
+        pix_qr_code=payment.pix_qr_code,
+        pix_qr_code_base64=payment.pix_qr_code_base64,
+        pix_ticket_url=payment.pix_ticket_url,
+        expires_at=payment.expires_at,
+        refunded_amount=payment.refunded_amount,
     )
 
 

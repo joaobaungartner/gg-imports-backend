@@ -18,7 +18,7 @@ class CreatePaymentUseCase:
         self,
         order_id: int,
         metodo: str,
-        valor: float | Decimal,
+        valor: float | Decimal | None = None,
     ) -> PaymentEntity:
         order = self.order_repository.get_by_id(order_id)
         if not order:
@@ -30,17 +30,14 @@ class CreatePaymentUseCase:
         if existing_payment and existing_payment.ativo:
             raise ValueError("Pedido já possui pagamento")
 
-        valor_decimal = (
-            Decimal(str(valor)) if not isinstance(valor, Decimal) else valor
-        )
+        valor_decimal = order.valor_total
         if valor_decimal <= 0:
             raise ValueError("Valor do pagamento inválido")
 
-        if valor_decimal != order.valor_total:
-            raise ValueError("Valor do pagamento inválido")
+        normalized_method = "CREDIT_CARD" if metodo == "CARTAO" else metodo
 
         try:
-            payment_method = PaymentMethod(metodo)
+            payment_method = PaymentMethod(normalized_method)
         except ValueError as exc:
             raise ValueError("Método de pagamento inválido") from exc
 

@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_REGISTER: int = 5
     RATE_LIMIT_TRACK_ORDER: int = 30
     LOG_LEVEL: str = "INFO"
+    MERCADO_PAGO_ACCESS_TOKEN: str | None = None
+    MERCADO_PAGO_WEBHOOK_SECRET: str | None = None
+    MERCADO_PAGO_WEBHOOK_URL: str | None = None
+    MERCADO_PAGO_API_BASE_URL: str = "https://api.mercadopago.com"
+    MERCADO_PAGO_PIX_EXPIRATION_MINUTES: int = 30
 
     model_config = SettingsConfigDict(env_file=str(_ENV_FILE), extra="ignore")
 

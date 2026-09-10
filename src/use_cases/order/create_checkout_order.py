@@ -164,11 +164,9 @@ class CreateCheckoutOrderUseCase:
             payment_method=payment_method.upper(),
             status=OrderStatus.PENDING_PAYMENT,
             estoque_reservado=True,
-            reserva_expira_em=(
-                datetime.utcnow() + timedelta(minutes=self.PIX_RESERVATION_MINUTES)
-                if payment_method.upper() == "PIX"
-                else None
-            ),
+            # Nenhum checkout pendente pode prender estoque indefinidamente.
+            reserva_expira_em=datetime.utcnow()
+            + timedelta(minutes=self.PIX_RESERVATION_MINUTES),
             frete=frete_calculado,
         )
 

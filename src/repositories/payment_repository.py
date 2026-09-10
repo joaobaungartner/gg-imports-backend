@@ -21,6 +21,18 @@ class PaymentRepository:
             codigo_transacao=model.codigo_transacao,
             data_pagamento=model.data_pagamento,
             ativo=model.ativo,
+            gateway=model.gateway,
+            idempotency_key=model.idempotency_key,
+            gateway_status=model.gateway_status,
+            status_detail=model.status_detail,
+            payment_method_id=model.payment_method_id,
+            installments=model.installments,
+            pix_qr_code=model.pix_qr_code,
+            pix_qr_code_base64=model.pix_qr_code_base64,
+            pix_ticket_url=model.pix_ticket_url,
+            expires_at=model.expires_at,
+            refunded_amount=Decimal(str(model.refunded_amount or 0)),
+            last_reconciled_at=model.last_reconciled_at,
         )
 
     def _to_model(self, entity: PaymentEntity) -> PaymentModel:
@@ -37,6 +49,18 @@ class PaymentRepository:
             "codigo_transacao": entity.codigo_transacao,
             "data_pagamento": entity.data_pagamento,
             "ativo": entity.ativo,
+            "gateway": entity.gateway,
+            "idempotency_key": entity.idempotency_key,
+            "gateway_status": entity.gateway_status,
+            "status_detail": entity.status_detail,
+            "payment_method_id": entity.payment_method_id,
+            "installments": entity.installments,
+            "pix_qr_code": entity.pix_qr_code,
+            "pix_qr_code_base64": entity.pix_qr_code_base64,
+            "pix_ticket_url": entity.pix_ticket_url,
+            "expires_at": entity.expires_at,
+            "refunded_amount": entity.refunded_amount,
+            "last_reconciled_at": entity.last_reconciled_at,
         }
         if entity.id is not None:
             kwargs["id"] = entity.id
@@ -56,6 +80,15 @@ class PaymentRepository:
         if not model:
             return None
         return self._to_entity(model)
+
+    def get_by_id_for_update(self, payment_id: int) -> PaymentEntity | None:
+        model = (
+            self.db.query(PaymentModel)
+            .filter(PaymentModel.id == payment_id)
+            .with_for_update()
+            .first()
+        )
+        return self._to_entity(model) if model else None
 
     def get_by_order_id(self, order_id: int) -> PaymentEntity | None:
         model = (

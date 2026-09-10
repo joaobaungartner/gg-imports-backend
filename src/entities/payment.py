@@ -50,6 +50,18 @@ class PaymentEntity:
     codigo_transacao: str | None = None
     data_pagamento: datetime | None = None
     ativo: bool = True
+    gateway: str | None = None
+    idempotency_key: str | None = None
+    gateway_status: str | None = None
+    status_detail: str | None = None
+    payment_method_id: str | None = None
+    installments: int | None = None
+    pix_qr_code: str | None = None
+    pix_qr_code_base64: str | None = None
+    pix_ticket_url: str | None = None
+    expires_at: datetime | None = None
+    refunded_amount: Decimal = Decimal("0")
+    last_reconciled_at: datetime | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.metodo, str):
