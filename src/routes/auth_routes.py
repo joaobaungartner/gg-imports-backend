@@ -34,11 +34,9 @@ def _password_fingerprint(password_hash: str) -> str:
 
 def _decode_action_token(token: str, purpose: str) -> dict:
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(token, expected_purpose=purpose)
     except JWTError as exc:
         raise HTTPException(status_code=400, detail="Token inválido ou expirado") from exc
-    if payload.get("purpose") != purpose:
-        raise HTTPException(status_code=400, detail="Token inválido")
     return payload
 
 

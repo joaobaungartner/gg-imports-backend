@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from jose import jwt
+from jose import JWTError, jwt
 
 from src.config.config import get_settings
 
@@ -10,6 +10,7 @@ def create_access_token(
 ) -> str:
     settings = get_settings()
     to_encode = data.copy()
+    to_encode.setdefault("purpose", "access")
     expire = datetime.now(timezone.utc) + (
         expires_delta
         if expires_delta is not None
@@ -21,8 +22,12 @@ def create_access_token(
     )
 
 
-def decode_access_token(token: str) -> dict:
+def decode_access_token(token: str, *, expected_purpose: str = "access") -> dict:
     settings = get_settings()
-    return jwt.decode(
+    payload = jwt.decode(
         token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
     )
+    # Fail closed, including for legacy tokens without an explicit purpose.
+    if payload.get("purpose") != expected_purpose:
+        raise JWTError("Finalidade do token inválida")
+    return payload
