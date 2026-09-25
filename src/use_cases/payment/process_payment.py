@@ -30,7 +30,7 @@ class ProcessPaymentUseCase:
         if payment.status == PaymentStatus.PAID:
             return payment
         if payment.codigo_transacao and payment.status in (PaymentStatus.PENDING, PaymentStatus.PROCESSING):
-            return ReconcilePaymentUseCase(self.payment_repository, self.order_repository).execute(
+            return ReconcilePaymentUseCase(self.payment_repository, self.order_repository, self.gateway).execute(
                 self.gateway.get_payment(payment.codigo_transacao)
             )
 
@@ -75,4 +75,4 @@ class ProcessPaymentUseCase:
         gateway_data = self.gateway.create_payment(payload, idempotency_key)
         transaction_data = ((gateway_data.get("point_of_interaction") or {}).get("transaction_data") or {})
         self.payment_repository.update(payment.id, {"codigo_transacao": str(gateway_data.get("id")), "pix_qr_code": transaction_data.get("qr_code"), "pix_qr_code_base64": transaction_data.get("qr_code_base64"), "pix_ticket_url": transaction_data.get("ticket_url")})
-        return ReconcilePaymentUseCase(self.payment_repository, self.order_repository).execute(gateway_data)
+        return ReconcilePaymentUseCase(self.payment_repository, self.order_repository, self.gateway).execute(gateway_data)

@@ -5,6 +5,7 @@ from src.entities.payment import PaymentStatus
 from src.repositories.order_repository import OrderRepository
 from src.repositories.payment_repository import PaymentRepository
 from src.use_cases.payment.confirm_payment import ConfirmPaymentUseCase
+from src.services.mercado_pago import MercadoPagoGateway
 
 
 STATUS_MAP = {
@@ -20,9 +21,10 @@ STATUS_MAP = {
 
 
 class ReconcilePaymentUseCase:
-    def __init__(self, payments: PaymentRepository, orders: OrderRepository):
+    def __init__(self, payments: PaymentRepository, orders: OrderRepository, gateway: MercadoPagoGateway | None = None):
         self.payments = payments
         self.orders = orders
+        self.gateway = gateway
 
     def execute(self, gateway_data: dict):
         gateway_id = str(gateway_data.get("id") or "")
@@ -56,8 +58,8 @@ class ReconcilePaymentUseCase:
             "last_reconciled_at": datetime.utcnow(),
         }
         if local_status == PaymentStatus.PAID:
-            self.payments.update(payment.id, common)
-            return ConfirmPaymentUseCase(self.payments, self.orders).execute(payment.id, gateway_id)
+            return ConfirmPaymentUseCase(self.payments, self.orders, self.gateway).execute(
+                payment.id, gateway_id, gateway_fields=common)
 
         if payment.status in (PaymentStatus.PAID, PaymentStatus.REFUNDED):
             if local_status != PaymentStatus.REFUNDED:

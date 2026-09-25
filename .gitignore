@@ -5,5 +5,6 @@ __pycache__/
 .pytest_cache/
 credentials.json
 gmail-token.json
+secrets/
 *.dump
 ci-test.db

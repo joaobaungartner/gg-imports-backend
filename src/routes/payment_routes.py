@@ -27,6 +27,7 @@ from src.use_cases.payment.process_payment import ProcessPaymentUseCase
 from src.use_cases.payment.reconcile_payment import ReconcilePaymentUseCase
 from src.use_cases.payment.refund_payment import RefundPaymentUseCase
 from src.use_cases.payment.update_payment_status import UpdatePaymentStatusUseCase
+from src.use_cases.payment.confirm_payment import LatePaymentRefundPending
 
 
 class PaymentConfirmBody(BaseModel):
@@ -69,7 +70,9 @@ async def mercado_pago_webhook(request: Request, x_signature: str | None = Heade
         raise HTTPException(status_code=503, detail="Mercado Pago não configurado")
     gateway = MercadoPagoGateway(settings.MERCADO_PAGO_ACCESS_TOKEN, settings.MERCADO_PAGO_API_BASE_URL)
     try:
-        ReconcilePaymentUseCase(PaymentRepository(db), OrderRepository(db)).execute(gateway.get_payment(data_id))
+        ReconcilePaymentUseCase(PaymentRepository(db), OrderRepository(db), gateway).execute(gateway.get_payment(data_id))
+    except LatePaymentRefundPending as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"received": True}
@@ -108,7 +111,7 @@ def reconcile_payment(payment_id: int, db: Session = Depends(get_db), current_us
         if not settings.MERCADO_PAGO_ACCESS_TOKEN:
             raise ValueError("Mercado Pago não configurado")
         gateway = MercadoPagoGateway(settings.MERCADO_PAGO_ACCESS_TOKEN, settings.MERCADO_PAGO_API_BASE_URL)
-        return to_payment_response(ReconcilePaymentUseCase(PaymentRepository(db), OrderRepository(db)).execute(gateway.get_payment(payment.codigo_transacao)))
+        return to_payment_response(ReconcilePaymentUseCase(PaymentRepository(db), OrderRepository(db), gateway).execute(gateway.get_payment(payment.codigo_transacao)))
     return run_use_case(execute)
 
 

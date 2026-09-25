@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from src.entities.order import OrderEntity, OrderStatus
 from src.repositories.order_repository import OrderRepository
 from src.repositories.product_repository import ProductRepository
@@ -25,12 +27,26 @@ class CancelOrderUseCase:
         self,
         order_id: int,
         changed_by_user_id: int | None = None,
+        *,
+        expired_before: datetime | None = None,
+        commit: bool = True,
     ) -> OrderEntity:
         order = self.order_repository.get_by_id_for_update(order_id)
         if not order:
             raise ValueError("Pedido não encontrado")
 
         if order.status == OrderStatus.CANCELED:
+            return order
+
+        # The expiration scan may be stale after waiting for the row lock.
+        if expired_before is not None and (
+            order.status != OrderStatus.PENDING_PAYMENT
+            or not order.estoque_reservado
+            or order.reserva_expira_em is None
+            or order.reserva_expira_em > expired_before
+        ):
+            if commit:
+                self.order_repository.db.commit()
             return order
 
         previous = order.status.value
@@ -55,7 +71,8 @@ class CancelOrderUseCase:
                 note=None,
                 commit=False,
             )
-            self.order_repository.db.commit()
+            if commit:
+                self.order_repository.db.commit()
         except Exception:
             self.order_repository.db.rollback()
             raise

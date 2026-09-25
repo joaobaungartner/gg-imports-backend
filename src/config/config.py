@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
 _ENV_FILE = _BASE_DIR / ".env"
@@ -37,6 +38,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_REGISTER: int = 5
     RATE_LIMIT_TRACK_ORDER: int = 30
     LOG_LEVEL: str = "INFO"
+    NOTIFICATION_INTERVAL_SECONDS: int = Field(default=30, ge=1)
+    RESERVATION_EXPIRATION_INTERVAL_SECONDS: int = Field(default=60, ge=1)
+    NOTIFICATION_BATCH_SIZE: int = Field(default=100, ge=1, le=1000)
     MERCADO_PAGO_ACCESS_TOKEN: str | None = None
     MERCADO_PAGO_WEBHOOK_SECRET: str | None = None
     MERCADO_PAGO_WEBHOOK_URL: str | None = None

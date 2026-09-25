@@ -27,6 +27,10 @@ class RefundPaymentUseCase:
             return payment
         if payment.status != PaymentStatus.PAID or not payment.codigo_transacao:
             raise ValueError("Pagamento não pode ser estornado")
-        self.gateway.refund(payment.codigo_transacao, f"refund-{payment.id}-{uuid.uuid4()}")
+        # Stable across retries, timeouts and concurrent webhook deliveries.
+        key = str(uuid.uuid5(uuid.NAMESPACE_URL, f"gg-imports:refund:{payment.id}:{payment.codigo_transacao}"))
+        self.gateway.refund(payment.codigo_transacao, key)
         gateway_data = self.gateway.get_payment(payment.codigo_transacao)
-        return ReconcilePaymentUseCase(self.payment_repository, self.order_repository).execute(gateway_data)
+        if gateway_data.get("status") != "refunded":
+            raise RuntimeError("Estorno ainda não confirmado pelo Mercado Pago")
+        return ReconcilePaymentUseCase(self.payment_repository, self.order_repository, self.gateway).execute(gateway_data)

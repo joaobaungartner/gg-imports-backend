@@ -85,6 +85,7 @@ class PaymentRepository:
         model = (
             self.db.query(PaymentModel)
             .filter(PaymentModel.id == payment_id)
+            .populate_existing()
             .with_for_update()
             .first()
         )
@@ -124,7 +125,7 @@ class PaymentRepository:
         )
         return [self._to_entity(model) for model in models]
 
-    def update(self, payment_id: int, data: dict) -> PaymentEntity | None:
+    def update(self, payment_id: int, data: dict, *, commit: bool = True) -> PaymentEntity | None:
         model = (
             self.db.query(PaymentModel).filter(PaymentModel.id == payment_id).first()
         )
@@ -133,8 +134,11 @@ class PaymentRepository:
         for key, value in data.items():
             if hasattr(model, key):
                 setattr(model, key, value)
-        self.db.commit()
-        self.db.refresh(model)
+        if commit:
+            self.db.commit()
+            self.db.refresh(model)
+        else:
+            self.db.flush()
         return self._to_entity(model)
 
     def update_status(self, payment_id: int, status: str) -> PaymentEntity | None:

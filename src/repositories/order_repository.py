@@ -162,7 +162,8 @@ class OrderRepository:
             self.db.query(OrderModel)
             .options(joinedload(OrderModel.itens), joinedload(OrderModel.pagamento))
             .filter(OrderModel.id == order_id)
-            .with_for_update()
+            .populate_existing()
+            .with_for_update(of=OrderModel)
             .first()
         )
         return self._to_entity(model) if model else None
