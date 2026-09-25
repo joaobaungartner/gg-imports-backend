@@ -46,6 +46,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -63,10 +65,28 @@ jobs:
         run: |
           alembic upgrade head
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           python -m pytest tests \
             --cov=src \
             --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-fail-under=100
+            --cov-report=xml:coverage.xml \
+            --cov-report=json:coverage.json
+
+      - name: Check coverage targets
+        run: |
+          python scripts/check_coverage_thresholds.py
+
+      - name: Check new code coverage on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          diff-cover coverage.xml \
+            --compare-branch=origin/${{ github.base_ref }} \
+            --fail-under=85
+
+      - name: Check new code coverage on push
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: |
+          diff-cover coverage.xml \
+            --compare-branch=${{ github.event.before }} \
+            --fail-under=85
