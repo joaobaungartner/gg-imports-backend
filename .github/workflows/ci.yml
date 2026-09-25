@@ -41,6 +41,7 @@ jobs:
       ENVIRONMENT: test
       ALLOWED_ORIGINS: http://localhost:5173
       RATE_LIMIT_ENABLED: "false"
+      PYTHONPATH: ${{ github.workspace }}
 
     steps:
       - name: Checkout repository
@@ -64,7 +65,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests \
+          python -m pytest tests \
             --cov=src \
             --cov-report=term-missing \
             --cov-report=xml \
