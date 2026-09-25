@@ -8,3 +8,8 @@ gmail-token.json
 secrets/
 *.dump
 ci-test.db
+# Coverage
+.coverage
+coverage.xml
+coverage.json
+htmlcov/
