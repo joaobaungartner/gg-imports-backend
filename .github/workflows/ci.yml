@@ -1,4 +1,4 @@
-name: CI - Tests and Coverage
+name: CI - Tests, Coverage and Deploy
 
 on:
   push:
@@ -90,3 +90,198 @@ jobs:
           diff-cover coverage.xml \
             --compare-branch=${{ github.event.before }} \
             --fail-under=85
+
+
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+
+    # O deploy só começa se o job "tests" inteiro passar.
+    needs: tests
+
+    # Só faz deploy de commits enviados para a main.
+    # Pull Requests executam testes, mas NÃO alteram produção.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Evita dois deploys simultâneos na mesma EC2.
+    concurrency:
+      group: gg-imports-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+
+        run: |
+          mkdir -p ~/.ssh
+
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/gg_imports_deploy
+
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/gg_imports_deploy
+
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
+
+        run: |
+          ssh \
+            -i ~/.ssh/gg_imports_deploy \
+            "$EC2_USER@$EC2_HOST" \
+            "bash -s -- '$DEPLOY_SHA'" <<'EOF'
+
+          set -euo pipefail
+
+          DEPLOY_SHA="$1"
+
+          APP_DIR="$HOME/gg-imports"
+          CONTAINER_NAME="gg-imports-backend"
+
+          echo "=========================================="
+          echo "GG Imports - Deploy"
+          echo "Commit: $DEPLOY_SHA"
+          echo "=========================================="
+
+          cd "$APP_DIR"
+
+          echo ""
+          echo "1. Verificando ambiente de produção..."
+
+          if [ ! -f .env ]; then
+            echo "ERRO: arquivo .env não encontrado em $APP_DIR"
+            exit 1
+          fi
+
+          echo ""
+          echo "2. Baixando commit aprovado pelo CI..."
+
+          git fetch origin main
+
+          git reset --hard "$DEPLOY_SHA"
+
+          echo ""
+          echo "Commit presente na EC2:"
+          git rev-parse HEAD
+
+          echo ""
+          echo "3. Salvando imagem atual para possível rollback..."
+
+          if docker image inspect gg-imports-backend:latest >/dev/null 2>&1; then
+            docker tag \
+              gg-imports-backend:latest \
+              gg-imports-backend:previous
+
+            echo "Imagem anterior salva."
+          else
+            echo "Nenhuma imagem latest encontrada para rollback."
+          fi
+
+          echo ""
+          echo "4. Construindo nova imagem Docker..."
+
+          docker build \
+            -t "gg-imports-backend:$DEPLOY_SHA" \
+            .
+
+          echo ""
+          echo "5. Parando container atual..."
+
+          docker stop "$CONTAINER_NAME" 2>/dev/null || true
+          docker rm "$CONTAINER_NAME" 2>/dev/null || true
+
+          echo ""
+          echo "6. Iniciando nova versão..."
+
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            --env-file .env \
+            -p 127.0.0.1:8000:8000 \
+            "gg-imports-backend:$DEPLOY_SHA"
+
+          echo ""
+          echo "7. Aguardando aplicação iniciar..."
+
+          HEALTHY=false
+
+          for i in {1..30}; do
+
+            if curl \
+              --fail \
+              --silent \
+              http://127.0.0.1:8000/health/ready \
+              >/dev/null; then
+
+              HEALTHY=true
+              break
+
+            fi
+
+            echo "Tentativa $i/30..."
+            sleep 2
+
+          done
+
+          if [ "$HEALTHY" = true ]; then
+
+            echo ""
+            echo "Health check OK."
+
+            docker tag \
+              "gg-imports-backend:$DEPLOY_SHA" \
+              gg-imports-backend:latest
+
+            echo ""
+            echo "=========================================="
+            echo "DEPLOY REALIZADO COM SUCESSO"
+            echo "Commit: $DEPLOY_SHA"
+            echo "=========================================="
+
+            exit 0
+
+          fi
+
+          echo ""
+          echo "=========================================="
+          echo "ERRO: NOVA VERSAO NAO FICOU SAUDAVEL"
+          echo "=========================================="
+
+          echo ""
+          echo "Logs da nova versão:"
+
+          docker logs --tail 100 "$CONTAINER_NAME" || true
+
+          echo ""
+          echo "8. Executando rollback..."
+
+          docker stop "$CONTAINER_NAME" 2>/dev/null || true
+          docker rm "$CONTAINER_NAME" 2>/dev/null || true
+
+          if docker image inspect gg-imports-backend:previous >/dev/null 2>&1; then
+
+            docker run -d \
+              --name "$CONTAINER_NAME" \
+              --restart unless-stopped \
+              --env-file .env \
+              -p 127.0.0.1:8000:8000 \
+              gg-imports-backend:previous
+
+            echo ""
+            echo "Versão anterior restaurada."
+
+          else
+
+            echo ""
+            echo "ERRO: nenhuma imagem anterior disponível para rollback."
+
+          fi
+
+          exit 1
+
+          EOF
