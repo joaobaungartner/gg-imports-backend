@@ -25,6 +25,7 @@ class ProductModel(Base):
     estoque = Column(Integer, nullable=False, default=0)
     imagem_url = Column(String(500), nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
+    excluido = Column(Boolean, default=False, nullable=False, server_default="false")
 
     categoria = relationship("CategoryModel", back_populates="produtos")
     cart_items = relationship("CartItemModel", back_populates="produto")

@@ -66,7 +66,7 @@ class ProductRepository:
 
     def get_by_id(self, product_id: int) -> ProductEntity | None:
         model = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.id == product_id)
             .first()
         )
@@ -77,7 +77,7 @@ class ProductRepository:
     def get_by_name(self, nome: str) -> ProductEntity | None:
         nome_normalizado = self._normalize_text(nome)
         model = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.nome == nome_normalizado)
             .first()
         )
@@ -86,12 +86,12 @@ class ProductRepository:
         return self._to_entity(model)
 
     def list_all(self) -> list[ProductEntity]:
-        models = self.db.query(ProductModel).all()
+        models = self.db.query(ProductModel).filter(ProductModel.excluido.is_(False)).all()
         return [self._to_entity(model) for model in models]
 
     def list_active(self) -> list[ProductEntity]:
         models = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.ativo.is_(True))
             .all()
         )
@@ -99,7 +99,7 @@ class ProductRepository:
 
     def list_by_category(self, category_id: int) -> list[ProductEntity]:
         models = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.category_id == category_id)
             .all()
         )
@@ -108,7 +108,7 @@ class ProductRepository:
     def list_by_club(self, clube: str) -> list[ProductEntity]:
         clube_normalizado = self._normalize_text(clube)
         models = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.clube == clube_normalizado)
             .all()
         )
@@ -117,7 +117,7 @@ class ProductRepository:
     def list_by_type(self, tipo: str) -> list[ProductEntity]:
         tipo_normalizado = self._normalize_text(tipo)
         models = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.tipo == tipo_normalizado)
             .all()
         )
@@ -126,7 +126,7 @@ class ProductRepository:
     def search(self, query: str, apenas_ativos: bool = True) -> list[ProductEntity]:
         termo = f"%{query.strip()}%"
         filters = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(
                 or_(
                     ProductModel.nome.ilike(termo),
@@ -144,7 +144,7 @@ class ProductRepository:
 
     def update(self, product_id: int, data: dict) -> ProductEntity | None:
         model = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.id == product_id)
             .first()
         )
@@ -189,7 +189,7 @@ class ProductRepository:
         if quantidade <= 0:
             raise ValueError("Quantidade inválida")
         updated = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(
                 ProductModel.id == product_id,
                 ProductModel.ativo.is_(True),
@@ -213,7 +213,7 @@ class ProductRepository:
         if quantidade <= 0:
             raise ValueError("Quantidade inválida")
         updated = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.id == product_id)
             .update(
                 {ProductModel.estoque: ProductModel.estoque + quantidade},
@@ -235,16 +235,22 @@ class ProductRepository:
     def deactivate(self, product_id: int) -> ProductEntity | None:
         return self.update(product_id, {"ativo": False})
 
-    def delete(self, product_id: int) -> bool:
+    def delete(self, product_id: int, *, commit: bool = True) -> bool:
         model = (
-            self.db.query(ProductModel)
+            self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
             .filter(ProductModel.id == product_id)
             .first()
         )
         if not model:
             return False
-        self.db.delete(model)
-        self.db.commit()
+        # Preserve references from carts and stock history while removing the
+        # product from all catalog reads, including the administrator's list.
+        model.ativo = False
+        model.excluido = True
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         return True
 
     def product_exists(self, product_id: int) -> bool:

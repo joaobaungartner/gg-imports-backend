@@ -77,7 +77,7 @@ def test_product_lifecycle(commerce_api):
     assert client.patch(f'/products/{id_}/deactivate').json()['ativo'] is False
     assert client.patch(f'/products/{id_}/activate').json()['ativo'] is True
     assert client.delete(f'/products/{id_}').status_code == 200
-    assert client.get(f'/products/{id_}').json()['ativo'] is False
+    assert client.get(f'/products/{id_}').status_code == 404
 
 
 def test_bulk_product_actions(commerce_api):
@@ -89,7 +89,7 @@ def test_bulk_product_actions(commerce_api):
         assert client.patch(f'/products/{action}-many', json={'product_ids': [999]}).status_code == 404
     response = client.request('DELETE', '/products/delete-many', json={'product_ids': [1]})
     assert response.status_code == 200, response.text
-    assert client.get('/products/1').json()['ativo'] is False
+    assert client.get('/products/1').status_code == 404
 
 
 @pytest.mark.parametrize('error', [False, True])

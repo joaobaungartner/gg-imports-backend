@@ -80,7 +80,7 @@ class ProductCollectionRepository:
         if not group_keys:
             return []
 
-        query = self.db.query(ProductModel)
+        query = self.db.query(ProductModel).filter(ProductModel.excluido.is_(False))
         if active_only:
             query = query.filter(ProductModel.ativo.is_(True))
 

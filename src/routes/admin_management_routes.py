@@ -124,7 +124,7 @@ def low_stock(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_admin),
 ):
-    products = db.query(ProductModel).filter(
+    products = db.query(ProductModel).filter(ProductModel.excluido.is_(False)).filter(
         ProductModel.ativo.is_(True), ProductModel.estoque <= threshold
     ).order_by(ProductModel.estoque, ProductModel.nome).all()
     return [{"id": p.id, "name": p.nome, "sku": p.sku, "size": p.tamanho,
@@ -157,7 +157,7 @@ def adjust_stock(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_admin),
 ):
-    product = db.query(ProductModel).filter(ProductModel.id == product_id).with_for_update().first()
+    product = db.query(ProductModel).filter(ProductModel.excluido.is_(False)).filter(ProductModel.id == product_id).with_for_update().first()
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     previous = product.estoque

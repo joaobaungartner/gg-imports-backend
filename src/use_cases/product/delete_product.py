@@ -15,9 +15,9 @@ class DeleteProductUseCase:
 
     def _has_linked_orders(self, product_id: int) -> bool:
         itens = self.order_item_repository.get_by_product_id(product_id)
-        return any(item.ativo for item in itens)
+        return bool(itens)
 
-    def execute(self, product_id: int) -> ProductEntity:
+    def execute(self, product_id: int, *, commit: bool = True) -> ProductEntity:
         product = self.product_repository.get_by_id(product_id)
         if not product:
             raise ValueError("Produto não encontrado")
@@ -25,8 +25,8 @@ class DeleteProductUseCase:
         if self._has_linked_orders(product_id):
             raise ValueError("Não é possível deletar produto com pedidos vinculados")
 
-        deactivated = self.product_repository.deactivate(product_id)
-        if not deactivated:
+        if not self.product_repository.delete(product_id, commit=commit):
             raise ValueError("Produto não encontrado")
 
-        return deactivated
+        product.ativo = False
+        return product
